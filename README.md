@@ -81,16 +81,18 @@ Muestra diálogos modales asíncronos. Usa `async/await` para esperar la respues
 ```javascript
 import { MessageBox } from '../../core/JSForm.MessageBox.js';
 
-async function confirmarBorrado() {
+// Dentro de un método de tu controlador (ej. un evento de click)
+async btnBorrar_click() {
     const resultado = await MessageBox.show(
         'Confirmar Acción',
         '¿Está seguro de que desea eliminar esto?',
         MessageBox.Buttons.YesNo,
         MessageBox.Icon.Warning
     );
-
+    
     if (resultado === 'yes') {
-        console.log('Usuario confirmó el borrado.');
+        console.log('El usuario confirmó el borrado.');
+        // Aquí iría la lógica para borrar el elemento...
     }
 }
 ```

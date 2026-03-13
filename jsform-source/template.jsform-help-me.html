@@ -109,18 +109,20 @@ miDiv.renderTo(this.miContenedor); // this.miContenedor es un div con id="miCont
         <p>Muestra diálogos modales asíncronos. Usa <code>async/await</code> para esperar la respuesta del usuario.</p>
         <pre><code class="language-javascript">import { MessageBox } from '../../core/JSForm.MessageBox.js';
 
-async function confirmarBorrado() {
+// Dentro de un método de tu controlador (ej. un evento de click)
+async btnBorrar_click() {
     const resultado = await MessageBox.show(
         'Confirmar Acción',
         '¿Está seguro de que desea eliminar esto?',
         MessageBox.Buttons.YesNo,
         MessageBox.Icon.Warning
     );
-
+    
     if (resultado === 'yes') {
-        console.log('Usuario confirmó el borrado.');
+        console.log('El usuario confirmó el borrado.');
+        // Aquí iría la lógica para borrar el elemento...
     } else {
-        console.log('Usuario canceló.');
+        console.log('El usuario canceló la operación.');
     }
 }
 </code></pre>
@@ -169,20 +171,29 @@ export class MiControlador extends MiDesigner {
             <li><strong>En tu Controlador:</strong></li>
         </ol>
         <pre><code class="language-javascript">import { HttpClient } from '../../core/JSForm.HttpClient.js';
+import { MessageBox } from '../../core/JSForm.MessageBox.js'; // Opcional, para mostrar errores
 
-function cargarUsuarios() {
+// Dentro de un método de tu controlador
+cargarUsuarios() {
     HttpClient.get('/users', {
         // Opcional: para usar una API no-default
         // api: 'jsonPlaceholder', 
         
-        beforeSend: () => console.log('Cargando...'),
+        beforeSend: () => {
+            console.log('Cargando...');
+            // this.btnCargar.disabled = true;
+        },
         success: (data, status) => {
             console.log('Usuarios recibidos:', data);
+            // this.grid.setData(data); // Ejemplo de uso con DataGridView
         },
         error: (err, status) => {
-            console.error('Falló la petición:', err);
+            MessageBox.show('Error', `No se pudieron cargar los usuarios: ${err.message}`);
         },
-        complete: () => console.log('Petición finalizada.')
+        complete: () => {
+            console.log('Petición finalizada.');
+            // this.btnCargar.disabled = false;
+        }
     });
 }
 </code></pre>
