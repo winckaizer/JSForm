@@ -1,0 +1,5 @@
+# Ignorar la carpeta con los archivos fuente originales
+/jsform-source
+
+# Ignorar dependencias de desarrollo si las hubiera
+/node_modules

@@ -1,0 +1,138 @@
+/* ==========================================================================
+   Estilos por defecto para el componente JSForm.MessageBox
+   ========================================================================== */
+
+.jsform-messagebox-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.jsform-messagebox-window {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    min-width: 350px;
+    max-width: 500px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.jsform-messagebox-header {
+    background-color: #f7f7f7;
+    padding: 12px 15px;
+    border-bottom: 1px solid #e5e5e5;
+    font-weight: bold;
+    cursor: move; /* Indica que se puede arrastrar */
+    user-select: none;
+}
+
+.jsform-messagebox-body {
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    line-height: 1.5;
+}
+
+.jsform-messagebox-body p {
+    margin: 0;
+    flex-grow: 1;
+}
+
+.jsform-messagebox-footer {
+    background-color: #f7f7f7;
+    padding: 10px 15px;
+    border-top: 1px solid #e5e5e5;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.jsform-messagebox-button {
+    padding: 8px 15px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    background-color: #fff;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.2s, border-color 0.2s;
+}
+
+.jsform-messagebox-button:hover {
+    background-color: #f0f0f0;
+    border-color: #bbb;
+}
+
+/* Botón primario (generalmente el primero) */
+.jsform-messagebox-button:first-child {
+    background-color: #007bff;
+    color: #fff;
+    border-color: #007bff;
+}
+
+.jsform-messagebox-button:first-child:hover {
+    background-color: #0056b3;
+    border-color: #0056b3;
+}
+
+/* ==========================================
+   Iconos (creados con CSS para no depender de imágenes)
+   ========================================== */
+.jsform-messagebox-icon {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    position: relative;
+}
+
+.jsform-messagebox-icon::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    font-family: 'Arial', sans-serif;
+    font-weight: bold;
+    font-size: 20px;
+    line-height: 32px;
+    text-align: center;
+    color: #fff;
+}
+
+.jsform-messagebox-icon.icon-info::before {
+    content: 'i';
+    background-color: #17a2b8;
+}
+
+.jsform-messagebox-icon.icon-question::before {
+    content: '?';
+    background-color: #6c757d;
+}
+
+.jsform-messagebox-icon.icon-warning::before {
+    content: '!';
+    background-color: #ffc107;
+}
+
+.jsform-messagebox-icon.icon-error::before {
+    content: '×';
+    font-size: 24px;
+    background-color: #dc3545;
+}
+
+/* Ocultar el div del icono si no se especifica uno */
+.jsform-messagebox-icon.icon-none {
+    display: none;
+}

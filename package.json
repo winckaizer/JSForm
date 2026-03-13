@@ -1,33 +1,36 @@
 {
     "name": "jsform-cli",
-    "version": "1.0.0",
-    "description": "Instalador de JSForm: Arquitectura WinForms para la Web",
+    "version": "1.0.1",
+    "description": "JSForm: La arquitectura y productividad de Windows Forms, ahora en la web con Vanilla JS.",
     "main": "bin/index.js",
     "bin": {
-        "jsform": "./bin/index.js"
+        "jsform": "bin/index.js"
     },
     "files": [
-        "bin"
+        "bin",
+        "README.md",
+        "license"
     ],
     "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1",
         "build-fw": "node scripts/build-fw.js"
     },
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/Winckaizer/JSForm.git"
+        "url": "git+https://github.com/Winckaizer/jsform-cli.git"
     },
     "keywords": [
-        "cli",
+        "jsform",
         "framework",
-        "spa",
-        "vanilla-js",
+        "cli",
         "winforms",
-        "code-behind"
+        "spa",
+        "vanilla-js"
     ],
     "author": "Winckaizer",
     "license": "MIT",
     "bugs": {
-        "url": "https://github.com/Winckaizer/JSForm/issues"
+        "url": "https://github.com/Winckaizer/jsform-cli/issues"
     },
-    "homepage": "https://github.com/Winckaizer/JSForm#readme"
+    "homepage": "https://github.com/Winckaizer/jsform-cli#readme"
 }
