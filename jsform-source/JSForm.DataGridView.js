@@ -68,7 +68,8 @@ export class DataGridView {
             document.head.appendChild(script);
         });
 
-        this.render();
+        _loadedScripts.set(url, promise); // Guardar la promesa para evitar recargas
+        return promise;
     }
 
     /**

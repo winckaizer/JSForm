@@ -131,20 +131,27 @@ Un cliente para realizar peticiones a tus APIs de forma centralizada. Soporta m�
 
 ```javascript
 import { HttpClient } from '../../core/JSForm.HttpClient.js';
+import { MessageBox } from '../../core/JSForm.MessageBox.js'; // Opcional, para mostrar errores
 
-function cargarUsuarios() {
+// Dentro de un método de tu controlador
+cargarUsuarios() {
     HttpClient.get('/users', {
         // Opcional: para usar una API no-default
         // api: 'jsonPlaceholder', 
         
-        beforeSend: () => console.log('Cargando...'),
+        beforeSend: () => {
+            // this.btnCargar.disabled = true;
+        },
         success: (data, status) => {
             console.log('Usuarios recibidos:', data);
+            // this.grid.setData(data); // Ejemplo de uso con DataGridView
         },
         error: (err, status) => {
-            console.error('Falló la petición:', err);
+            MessageBox.show('Error', `No se pudieron cargar los usuarios: ${err.message}`);
         },
-        complete: () => console.log('Petición finalizada.')
+        complete: () => {
+            // this.btnCargar.disabled = false;
+        }
     });
 }
 ```
