@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guía de Ayuda de JSForm</title>
+    <style>
+        /* Basic styling for readability */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f9f9f9;
+            color: #333;
+        }
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background: #fff;
+            padding: 20px 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1, h2, h3 {
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+            color: #005a9c;
+        }
+        h1 { font-size: 2.5em; }
+        h2 { font-size: 2em; margin-top: 40px; }
+        h3 { font-size: 1.5em; margin-top: 30px; }
+        code {
+            background-color: #eef;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+        }
+        pre {
+            background-color: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+        pre code {
+            background: none;
+            padding: 0;
+        }
+        .note {
+            background-color: #fffbe6;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Guía de Ayuda de JSForm</h1>
+        <p>¡Bienvenido a JSForm! Esta guía te ayudará a entender la filosofía y el funcionamiento de este framework inspirado en la simplicidad y productividad de Windows Forms.</p>
+
+        <h2>1. La Filosofía: WinForms en la Web</h2>
+        <p>JSForm replica la arquitectura "Code-Behind" de .NET. Cada "Formulario" (o vista) se compone de tres archivos:</p>
+        <ul>
+            <li><strong><code>.html</code> (La Vista):</strong> HTML puro. Aquí defines la estructura visual de tu componente.</li>
+            <li><strong><code>.designer.js</code> (El Diseñador):</strong> <strong>¡NO TOCAR!</strong> Este archivo es auto-generado. Mapea cada elemento con un <code>id</code> en tu HTML a una propiedad en la clase del controlador (<code>this.miBoton</code>).</li>
+            <li><strong><code>.controller.js</code> (El Controlador):</strong> Aquí vive tu lógica. Hereda del diseñador, por lo que tienes acceso directo a los elementos del DOM a través de <code>this</code>.</li>
+        </ul>
+        <div class="note">
+            <strong>¡Magia Automática!</strong> Cuando creas una nueva carpeta en <code>app/forms</code>, el compilador de JSForm (<code>npm run dev</code>) genera estos tres archivos por ti. Si modificas el HTML y guardas, el <code>.designer.js</code> se actualiza solo.
+        </div>
+
+        <h2>2. Estructura del Proyecto</h2>
+        <ul>
+            <li><code>/app/forms/</code>: Contiene todas tus vistas/formularios. Cada subcarpeta es un módulo.</li>
+            <li><code>/app/services/</code>: Ideal para crear clases que encapsulen la lógica de negocio (ej. <code>UserService.js</code>).</li>
+            <li><code>/assets/</code>: Para tus imágenes, CSS y librerías de terceros.</li>
+            <li><code>/core/</code>: El corazón del framework. <strong>No modifiques estos archivos</strong>, ya que se actualizan con el comando <code>jsform update</code>.</li>
+            <li><code>/dist/</code>: Carpeta generada al ejecutar <code>npm run build</code>. Contiene la versión optimizada y ofuscada de tu app para producción.</li>
+        </ul>
+
+        <h2>3. El Auto-Binding de Eventos</h2>
+        <p>Olvídate de <code>addEventListener</code>. JSForm lo hace por ti. Si tienes un botón <code>&lt;button id="btnGuardar"&gt;&lt;/button&gt;</code>, simplemente crea un método en tu controlador con el nombre <code>btnGuardar_click(event)</code>. ¡Se enlazarán automáticamente!</p>
+        <pre><code class="language-javascript">// En tu home.controller.js
+// ...
+btnGuardar_click(e) {
+    console.log("¡Botón Guardar pulsado!");
+    // 'this' funciona correctamente aquí.
+}</code></pre>
+
+        <h2>4. Componentes del Núcleo</h2>
+
+        <h3>JSForm.Control</h3>
+        <p>Para crear elementos del DOM dinámicamente desde el código.</p>
+        <pre><code class="language-javascript">import { Control } from '../../core/JSForm.Control.js';
+
+// ... en un método de tu controlador ...
+const miDiv = new Control('div', 'divDinamico', {
+    className: 'alert alert-info',
+    html: '&lt;strong&gt;¡Hola!&lt;/strong&gt; Soy un div creado por código.'
+});
+miDiv.renderTo(this.miContenedor); // this.miContenedor es un div con id="miContenedor" en el HTML
+</code></pre>
+
+        <h3>JSForm.MessageBox</h3>
+        <p>Muestra diálogos modales asíncronos. Usa <code>async/await</code> para esperar la respuesta del usuario.</p>
+        <pre><code class="language-javascript">import { MessageBox } from '../../core/JSForm.MessageBox.js';
+
+async function confirmarBorrado() {
+    const resultado = await MessageBox.show(
+        'Confirmar Acción',
+        '¿Está seguro de que desea eliminar esto?',
+        MessageBox.Buttons.YesNo,
+        MessageBox.Icon.Warning
+    );
+
+    if (resultado === 'yes') {
+        console.log('Usuario confirmó el borrado.');
+    } else {
+        console.log('Usuario canceló.');
+    }
+}
+</code></pre>
+
+        <h3>JSForm.DataGridView</h3>
+        <p>Un adaptador para la potente librería DataTables.js. Carga los scripts necesarios bajo demanda.</p>
+        <ol>
+            <li><strong>En tu HTML:</strong> Añade una tabla vacía: <code>&lt;table id="gridUsuarios"&gt;&lt;/table&gt;</code>.</li>
+            <li><strong>En <code>main.css</code>:</strong> Descomenta la línea <code>@import</code> del CSS de DataTables.</li>
+            <li><strong>En tu Controlador:</strong></li>
+        </ol>
+        <pre><code class="language-javascript">import { DataGridView } from '../../core/JSForm.DataGridView.js';
+
+export class MiControlador extends MiDesigner {
+    constructor() {
+        super();
+        this.grid = null;
+        this.init();
+    }
+
+    async init() {
+        const datos = [{ id: 1, nombre: 'Ana' }, { id: 2, nombre: 'Luis' }];
+        
+        this.grid = await DataGridView.create('gridUsuarios', {
+            dataSource: datos,
+            columns: [
+                { data: 'id', title: 'ID' },
+                { data: 'nombre', title: 'Nombre' }
+            ]
+        });
+    }
+
+    onDestroy() {
+        // ¡Muy importante para liberar memoria!
+        if (this.grid) {
+            this.grid.destroy();
+        }
+    }
+}
+</code></pre>
+
+        <h3>JSForm.HttpClient</h3>
+        <p>Un cliente para realizar peticiones a tus APIs de forma centralizada y sencilla.</p>
+        <ol>
+            <li><strong>Configura tu API:</strong> Abre <code>jsform.config.js</code> y ajusta las URLs en la sección <code>api</code>.</li>
+            <li><strong>En tu Controlador:</strong></li>
+        </ol>
+        <pre><code class="language-javascript">import { HttpClient } from '../../core/JSForm.HttpClient.js';
+
+function cargarUsuarios() {
+    HttpClient.get('/users', {
+        // Opcional: para usar una API no-default
+        // api: 'jsonPlaceholder', 
+        
+        beforeSend: () => console.log('Cargando...'),
+        success: (data, status) => {
+            console.log('Usuarios recibidos:', data);
+        },
+        error: (err, status) => {
+            console.error('Falló la petición:', err);
+        },
+        complete: () => console.log('Petición finalizada.')
+    });
+}
+</code></pre>
+
+        <h2>5. Ejemplo Completo: Un Formulario de Login</h2>
+        <p>Este es un ejemplo de cómo se verían las piezas juntas para un formulario de login.</p>
+        
+        <h4>1. Crea la carpeta <code>app/forms/Login</code></h4>
+        <p>El compilador generará <code>login.html</code>, <code>login.designer.js</code> y <code>login.controller.js</code>.</p>
+
+        <h4>2. Edita <code>login.html</code></h4>
+        <pre><code class="language-html">&lt;div id="loginPanel"&gt;
+    &lt;h2&gt;Iniciar Sesión&lt;/h2&gt;
+    &lt;input type="text" id="txtUsuario" placeholder="Usuario"&gt;
+    &lt;input type="password" id="txtPassword" placeholder="Contraseña"&gt;
+    &lt;button id="btnLogin"&gt;Entrar&lt;/button&gt;
+    &lt;div id="lblMensaje"&gt;&lt;/div&gt;
+&lt;/div&gt;
+</code></pre>
+        <p class="note">Al guardar, <code>login.designer.js</code> se actualizará solo con <code>this.txtUsuario</code>, <code>this.txtPassword</code>, etc.</p>
+
+        <h4>3. Edita <code>login.controller.js</code></h4>
+        <pre><code class="language-javascript">import { LoginDesigner } from './login.designer.js';
+import { HttpClient } from '../../core/JSForm.HttpClient.js';
+import { MessageBox } from '../../core/JSForm.MessageBox.js';
+
+export class LoginController extends LoginDesigner {
+    constructor(parameters) {
+        super();
+        this.autoBindEvents();
+        this.init();
+    }
+
+    init() {
+        this.txtUsuario.focus();
+    }
+
+    // Evento auto-enlazado para el botón con id="btnLogin"
+    async btnLogin_click() {
+        const user = this.txtUsuario.value;
+        const pass = this.txtPassword.value;
+
+        if (!user || !pass) {
+            this.lblMensaje.innerText = "Usuario y contraseña son requeridos.";
+            return;
+        }
+        
+        HttpClient.post('/auth/login', { user, pass }, {
+            beforeSend: () => {
+                this.btnLogin.disabled = true;
+                this.lblMensaje.innerText = "Validando...";
+            },
+            success: (response) => {
+                // Guardar token, redirigir, etc.
+                console.log("Login exitoso:", response.token);
+                // Ejemplo de navegación a otra vista:
+                // import { HomeController } from '../Home/home.controller.js';
+                // Application.run('home', HomeController);
+            },
+            error: (err, status) => {
+                MessageBox.show('Error', 'Credenciales incorrectas', MessageBox.Buttons.OK, MessageBox.Icon.Error);
+            },
+            complete: () => {
+                this.btnLogin.disabled = false;
+                this.lblMensaje.innerText = "";
+            }
+        });
+    }
+}
+</code></pre>
+
+        <h4>4. Lanza el formulario en <code>app/program.js</code></h4>
+        <pre><code class="language-javascript">// En app/program.js
+import { Application } from '../core/JSForm.Core.js';
+import { LoginController } from './forms/Login/login.controller.js';
+
+class Program {
+    static async main() {
+        Application.init();
+        
+        // Lanzamos nuestro formulario de Login como vista inicial
+        await Application.run('login', LoginController);
+    }
+}
+
+Program.main();
+</code></pre>
+
+        <h2>6. Comandos del CLI</h2>
+        <ul>
+            <li><code>npm run dev</code>: Inicia el entorno de desarrollo con recarga en caliente.</li>
+            <li><code>npm run build</code>: Compila y ofusca tu aplicación para producción. El resultado queda en la carpeta <code>/dist</code>.</li>
+            <li><code>jsform update</code>: Actualiza el núcleo de JSForm a la última versión sin tocar tu código.</li>
+        </ul>
+    </div>
+</body>
+</html>

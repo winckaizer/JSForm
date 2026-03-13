@@ -1,0 +1,44 @@
+/* ==========================================================================
+   Estilos del Núcleo y de Terceros
+   ========================================================================== */
+/* Estilos base para MessageBox (se puede sobreescribir en custom-styles.css) */
+@import url('./JSForm.MessageBox.css');
+/* Ejemplo para añadir estilos de DataTables (descomentar si se usa DataGridView) */
+/* @import url('https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css'); */
+
+/* ==========================================================================
+   Tus estilos personalizados - ¡Este archivo NO se borrará al actualizar!
+   ========================================================================== */
+@import url('./custom-styles.css');
+
+body { 
+    margin: 0; 
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    padding-bottom: 30px; /* Espacio para los créditos */
+}
+
+/* Estilos para la firma de JSForm (puedes borrar esto si quieres) */
+.jsform-credits {
+    position: fixed;
+    bottom: 5px;
+    right: 10px;
+    font-size: 12px;
+    color: #999;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    text-decoration: none;
+    background-color: rgba(255, 255, 255, 0.8);
+    padding: 2px 5px;
+    border-radius: 4px;
+}
+
+.jsform-credits:hover {
+    color: #333;
+}
+
+.jsform-credits img {
+    width: 16px;
+    height: 16px;
+    opacity: 0.8;
+}
