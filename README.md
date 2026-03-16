@@ -22,6 +22,7 @@ JSForm rechaza la tendencia de mezclar lógica y vista en un solo archivo (como 
 *   **Auto-Binding de Eventos**: Enlaza eventos del DOM a métodos del controlador por convención de nombres (`btnGuardar_click`).
 *   **Componentes Reutilizables**: Incluye `MessageBox`, `DataGridView` (adaptador para DataTables.js) y un `HttpClient`.
 *   **Compilación para Producción**: Integrado con Vite para empaquetar, minificar y ofuscar tu aplicación con `npm run build`.
+*   **Manejo de Errores Personalizable**: Muestra páginas de error amigables para códigos HTTP (400, 404, 500) cuando una vista no se encuentra o hay un error en la carga.
 *   **Cero Dependencias (en el cliente)**: El framework en sí es Vanilla JS puro. Los componentes pueden cargar librerías de terceros bajo demanda.
 
 ## 📦 Instalación
@@ -161,7 +162,7 @@ cargarUsuarios() {
 *   `npm run dev`: Inicia el entorno de desarrollo con el watcher de archivos y el servidor de Vite.
 *   `npm run build`: Compila, minifica y ofusca tu aplicación para producción. El resultado se guarda en la carpeta `/dist`.
 *   `npm run preview`: Levanta un servidor para probar la versión de producción de la carpeta `/dist`.
-*   `jsform update`: Actualiza los archivos del núcleo de JSForm en un proyecto existente sin sobreescribir tu código.
+*   `jsform update`: Actualiza los archivos del núcleo de JSForm, incluyendo componentes, páginas de error y archivos de ayuda, en un proyecto existente sin sobreescribir tu código.
 
 ## 🤝 Contribuciones
 

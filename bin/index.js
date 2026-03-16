@@ -26,7 +26,10 @@ const fileRouting = {
     'jsform.httpclient.js': 'core/JSForm.HttpClient.js',
     'template.index.html': 'index.html',
     'template.main.css': 'assets/css/main.css',
-    'template.jsform-help-me.html': 'jsform-help-me.html'
+    'template.jsform-help-me.html': 'jsform-help-me.html',
+    '400.html': 'assets/errors/400.html',
+    '404.html': 'assets/errors/404.html',
+    '500.html': 'assets/errors/500.html'
 };
 
 // ==========================================
@@ -51,7 +54,7 @@ if (command === 'init') {
     }
 
     // 3. Crear la estructura de carpetas estándar
-    const folders = ['core', 'app', 'app/forms', 'assets', 'assets/css', 'assets/img', 'assets/vendors'];
+    const folders = ['core', 'app', 'app/forms', 'assets', 'assets/css', 'assets/img', 'assets/vendors', 'assets/errors'];
     folders.forEach(folder => {
         fs.mkdirSync(path.join(targetDir, folder), { recursive: true });
     });
@@ -156,6 +159,10 @@ Para aplicar estilos, ve a \`assets/css/main.css\` y descomenta la línea de imp
 else if (command === 'update') {
     console.log('🔄 Actualizando el motor de JSForm...');
     const targetDir = process.cwd(); 
+    
+    // Leer la versión del CLI para informar al usuario a qué versión del framework se actualiza
+    const cliPackageJsonPath = path.join(__dirname, '..', 'package.json');
+    const cliVersion = JSON.parse(fs.readFileSync(cliPackageJsonPath, 'utf8')).version;
 
     // Verificación de seguridad
     if (!fs.existsSync(path.join(targetDir, 'core'))) {
@@ -172,7 +179,12 @@ else if (command === 'update') {
         'jsform.messagebox.js', // Añadido para futuras actualizaciones
         'jsform.messagebox.css', // Añadido para futuras actualizaciones
         'jsform.datagridview.js', // Añadido para futuras actualizaciones
-        'jsform.httpclient.js' // Añadido para futuras actualizaciones
+        'jsform.httpclient.js', // Añadido para futuras actualizaciones
+        '400.html',
+        '404.html',
+        '500.html',
+        'template.main.css',
+        'template.jsform-help-me.html'
     ];
     let updatedCount = 0;
 
@@ -180,8 +192,16 @@ else if (command === 'update') {
         const searchName = sourceName.toLowerCase();
         
         if (safeToUpdate.includes(searchName) && fileData && fileData.content) {
+            // Usamos el mapeo de rutas general para manejar todas las ubicaciones de archivos
+            // Si no está en fileRouting, asumimos que va en la carpeta 'core/'
             const relativePath = fileRouting[searchName] || `core/${sourceName}`;
+
             const destPath = path.join(targetDir, relativePath);
+            // Asegurarse de que la carpeta de destino exista antes de escribir el archivo
+            const destDir = path.dirname(destPath);
+            if (!fs.existsSync(destDir)) {
+                fs.mkdirSync(destDir, { recursive: true });
+            }
             
             const buffer = Buffer.from(fileData.content, fileData.encoding || 'utf8');
             fs.writeFileSync(destPath, buffer);
@@ -191,7 +211,7 @@ else if (command === 'update') {
     }
     
     if (updatedCount > 0) {
-        console.log('\n✅ ¡Framework actualizado con éxito! Tus vistas y configuraciones están intactas.');
+        console.log(`\n✅ ¡Framework actualizado con éxito a la versión ${cliVersion}! Tus vistas y configuraciones están intactas.`);
     } else {
         console.log('\n⚠️ No se encontraron archivos del core para actualizar.');
     }

@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
+
 console.log('📦 Empaquetando el framework JSForm...');
 
 const sourceDir = path.join(__dirname, '..', 'jsform-source');
@@ -18,6 +19,9 @@ const filesToPack = [
     'jsform-icon.png', // Archivo binario
     'JSForm.MessageBox.js',
     'JSForm.MessageBox.css',
+    '400.html',
+    '404.html',
+    '500.html',
     'JSForm.DataGridView.js',
     'JSForm.HttpClient.js',
     'template.index.html',
