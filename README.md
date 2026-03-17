@@ -13,7 +13,23 @@ JSForm rechaza la tendencia de mezclar lógica y vista en un solo archivo (como 
 
 *   **Vista (`.html`)**: HTML puro y semántico.
 *   **Diseñador (`.designer.js`)**: Un archivo auto-generado que mapea los elementos del DOM a propiedades de clase. ¡Olvídate de `getElementById`!
-*   **Controlador (`.controller.js`)**: Tu lógica de negocio, con acceso directo a los controles a través de `this.miBoton`.
+*   **Controlador (`.controller.js`)**: Tu lógica de negocio pura. Hereda del diseñador, lo que permite el acceso a los controles (`this.miBoton`) y el enlazado automático de eventos.
+
+```javascript
+// login.controller.js
+import { LoginDesigner } from './login.designer.js';
+
+export class LoginController extends LoginDesigner {
+    constructor() {
+        super(); // ¡El Diseñador inicializa los controles y eventos por ti!
+    }
+
+    // Se ejecuta automáticamente al hacer click en el elemento con id="btnLogin"
+    btnLogin_click() {
+        alert("Login pulsado");
+    }
+}
+```
 
 ## 🚀 Características
 
