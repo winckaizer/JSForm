@@ -90,7 +90,8 @@ if (command === 'init') {
             "cheerio": "^1.0.0-rc.12",
             "chokidar": "^3.5.3",
             "concurrently": "^8.2.2",
-            "vite": "^5.0.0"
+            "vite": "^5.0.0",
+            "@vitejs/plugin-basic-ssl": "^1.1.0"
         }
     };
 
@@ -124,6 +125,29 @@ Para aplicar estilos, ve a \`assets/css/main.css\` y descomenta la línea de imp
 `;
     fs.writeFileSync(path.join(targetDir, 'assets/vendors/README.md'), vendorsReadme);
     console.log(`  -> Creado: assets/vendors/README.md (guía para librerías)`);
+
+    // 6.3. Crear vite.config.js para habilitar HTTPS y Proxy automáticamente
+    const viteConfig = `import { defineConfig } from 'vite';
+import basicSsl from '@vitejs/plugin-basic-ssl';
+
+export default defineConfig({
+  plugins: [
+    basicSsl()
+  ],
+  server: {
+    https: true,
+    proxy: {
+      // Redirige llamadas que empiecen con /api al backend real para evitar CORS
+      '/api': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+        secure: false
+      }
+    }
+  }
+});`;
+    fs.writeFileSync(path.join(targetDir, 'vite.config.js'), viteConfig);
+    console.log(`  -> Creado: vite.config.js (configurado con HTTPS)`);
 
     console.log(`\n✅ ¡Proyecto '${projectName}' creado!`);
 

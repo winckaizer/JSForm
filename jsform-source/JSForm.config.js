@@ -30,6 +30,8 @@ export default {
     // ==========================================
     api: {
         // Configuración de API por defecto. Se usará si no se especifica otra.
+        // TIP: Para evitar CORS en desarrollo, usa una ruta relativa (ej. '/api') 
+        // y asegúrate de tener el proxy configurado en vite.config.js
         default: {
             baseUrl: 'http://localhost:3000/api', 
             timeout: 5000 

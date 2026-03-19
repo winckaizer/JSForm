@@ -50,7 +50,7 @@ export class HttpClient {
      * @private
      */
     static async _request(method, endpoint, data, options) {
-        const { beforeSend, success, error, complete, headers: customHeaders, api: apiKey = 'default' } = options;
+        const { beforeSend, success, error, complete, headers: customHeaders, api: apiKey = 'default', ...fetchExtras } = options;
 
         // 1. Determinar la configuración de API a usar
         let apiConfig = Config.api[apiKey];
@@ -92,7 +92,8 @@ export class HttpClient {
             const fetchOptions = {
                 method,
                 headers,
-                signal: controller.signal
+                signal: controller.signal,
+                ...fetchExtras // Permite pasar opciones extra como 'credentials', 'mode', etc.
             };
             if (data) {
                 fetchOptions.body = JSON.stringify(data);
