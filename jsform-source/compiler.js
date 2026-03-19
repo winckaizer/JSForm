@@ -90,6 +90,10 @@ export class ${className}Controller extends ${className}Designer {
         // Ya no necesitas hacer this.btnSave.onclick = ...
         // Simplemente crea el método btnSave_click(e) { ... } abajo
     }
+
+    // onDestroy() {
+    //    // Limpieza de memoria (timers, eventos globales, etc.)
+    // }
 }\n`;
         fs.writeFileSync(controllerFile, controllerContent);
 

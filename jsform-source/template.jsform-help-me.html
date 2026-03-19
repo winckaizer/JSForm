@@ -127,7 +127,24 @@ btnGuardar_click(e) {
     // 'this' funciona correctamente aquí.
 }</code></pre>
 
-        <h2>4. Componentes del Núcleo</h2>
+        <h2>4. Ciclo de Vida: Liberar Memoria (onDestroy)</h2>
+        <p>Cuando el usuario cambia de vista, el controlador anterior se descarta. Sin embargo, si creaste <code>setInterval</code> o escuchas eventos globales (<code>window.addEventListener</code>), estos seguirán activos y causarán fugas de memoria.</p>
+        <p>Para evitarlo, define el método <code>onDestroy()</code> en tu controlador. JSForm lo llamará automáticamente antes de eliminar la vista.</p>
+        <pre><code class="language-javascript">export class MiControlador extends MiDesigner {
+    constructor() {
+        super();
+        // Ejemplo: Un proceso que se repite cada segundo
+        this.timerID = setInterval(() => console.log("Tic Tac"), 1000);
+    }
+
+    // Se ejecuta automáticamente al salir de la vista
+    onDestroy() {
+        clearInterval(this.timerID); // ¡Detenemos el proceso!
+        console.log("Recursos liberados.");
+    }
+}</code></pre>
+
+        <h2>5. Componentes del Núcleo</h2>
 
         <h3>JSForm.Control</h3>
         <p>Para crear elementos del DOM dinámicamente desde el código.</p>
@@ -239,7 +256,7 @@ cargarUsuarios() {
 }
 </code></pre>
 
-        <h2>5. Manejo de Páginas de Error</h2>
+        <h2>6. Manejo de Páginas de Error</h2>
         <p>JSForm ahora incluye un sistema robusto para mostrar páginas de error personalizadas cuando una vista no se encuentra o hay un error en la carga. Estas páginas se encuentran en <code>/assets/errors/</code>.</p>
         <pre><code class="language-javascript">// En core/JSForm.Core.js (lógica interna)
 // ...
@@ -260,7 +277,7 @@ try {
 </code></pre>
         <p>Puedes personalizar los archivos <code>400.html</code>, <code>404.html</code>, <code>500.html</code> (y añadir otros) en la carpeta <code>assets/errors/</code> de tu proyecto. Si una página de error específica no se encuentra, se mostrará un mensaje genérico.</p>
 
-        <h2>6. Ejemplo Completo: Un Formulario de Login</h2>
+        <h2>7. Ejemplo Completo: Un Formulario de Login</h2>
         <p>Este es un ejemplo de cómo se verían las piezas juntas para un formulario de login.</p>
 
         <h4>1. Crea la carpeta <code>app/forms/Login</code></h4>
@@ -349,7 +366,7 @@ Program.main();
 </code>
 </pre>
 
-        <h2>7. Comandos del CLI</h2>
+        <h2>8. Comandos del CLI</h2>
         <ul>
             <li><code>npm run dev</code>: Inicia el entorno de desarrollo con recarga en caliente.</li>
             <li><code>npm run build</code>: Compila y ofusca tu aplicación para producción. El resultado queda en la
