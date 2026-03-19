@@ -256,6 +256,29 @@ cargarUsuarios() {
 }
 </code></pre>
 
+        <h3>JSForm.State</h3>
+        <p>Gestor de estado global ligero y reactivo. Permite compartir datos entre formularios y persistirlos fácilmente.</p>
+        <pre><code class="language-javascript">import { State } from '../../core/JSForm.State.js';
+
+// 1. Guardar un valor (con opción de persistencia)
+// State.set(clave, valor, tipo_persistencia)
+State.set('usuario', { id: 1, nombre: 'Ana' });      // Solo memoria (se borra al refrescar)
+State.set('token', 'xyz123', 'session');             // SessionStorage (vive hasta cerrar pestaña)
+State.set('tema', 'dark', 'local');                  // LocalStorage (vive siempre)
+
+// 2. Obtener un valor
+const usuario = State.get('usuario'); // Devuelve el objeto o null si no existe
+
+// 3. Suscribirse a cambios (Reactividad)
+// Útil para actualizar la UI automáticamente cuando cambia un dato global
+const unsubscribe = State.subscribe('tema', (nuevoTema) => {
+    console.log("El tema cambió a:", nuevoTema);
+});
+
+// ¡Recuerda desuscribirte en onDestroy para evitar fugas de memoria!
+// unsubscribe();
+</code></pre>
+
         <h2>6. Manejo de Páginas de Error</h2>
         <p>JSForm ahora incluye un sistema robusto para mostrar páginas de error personalizadas cuando una vista no se encuentra o hay un error en la carga. Estas páginas se encuentran en <code>/assets/errors/</code>.</p>
         <pre><code class="language-javascript">// En core/JSForm.Core.js (lógica interna)
