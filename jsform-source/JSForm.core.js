@@ -15,6 +15,9 @@ export class Application {
     // MEJORA 3: Un mapa simple para saber qué controlador va con qué ruta (útil para el botón 'Atrás')
     static _routes = {};
 
+    // MEJORA 4: Flag para detectar el inicio de la aplicación
+    static _isStartup = true;
+
     /**
      * Initializes the application and sets up browser history listening.
      */
@@ -50,6 +53,48 @@ export class Application {
      * @returns {Promise<object>} The instantiated controller.
      */
     static async run(viewName, ControllerClass, targetId = null, parameters = null) {
+        // ==========================================
+        // AUTO-ROUTING EN DESARROLLO (Hot Reload Support)
+        // Permite recargar la página en la vista actual en lugar de volver al inicio.
+        // ==========================================
+        if (this._isStartup && this.AppConfig.environment === 'development') {
+            this._isStartup = false; 
+
+            const path = window.location.pathname;
+            const base = this.AppConfig.router.basePath || '';
+            let requestedView = path;
+
+            // Limpiar basePath y slashes iniciales/finales
+            if (base && path.startsWith(base)) requestedView = path.substring(base.length);
+            requestedView = requestedView.replace(/^\/+|\/+$/g, '');
+
+            // Si hay una ruta en la URL y es diferente a la por defecto (ej. '/dashboard' vs 'login')
+            if (requestedView && requestedView !== 'index.html' && requestedView.toLowerCase() !== viewName.toLowerCase()) {
+                console.log(`[JSForm] 🔍 Detectada ruta en URL: '${requestedView}'. Intentando restaurar sesión...`);
+
+                // Asumimos convención: nombrevista -> /app/forms/Nombrevista/nombrevista.controller.js
+                const folderName = requestedView.charAt(0).toUpperCase() + requestedView.slice(1);
+                const fileName = requestedView.toLowerCase();
+
+                try {
+                    // Importación dinámica del módulo del controlador
+                    const modulePath = `/app/forms/${folderName}/${fileName}.controller.js`;
+                    const module = await import(modulePath); // Funciona nativamente en navegadores modernos/Vite
+                    const className = `${folderName}Controller`;
+                    const DynamicController = module[className];
+
+                    if (DynamicController) {
+                        console.log(`[JSForm] ✅ Sesión restaurada: Cargando '${requestedView}' automáticamente.`);
+                        this.register(requestedView, DynamicController);
+                        return await this._internalRun(requestedView, DynamicController, targetId, parameters, false);
+                    }
+                } catch (e) {
+                    console.warn(`[JSForm] ⚠️ No se pudo restaurar la vista '${requestedView}' (¿Existe el archivo?). Se cargará la por defecto.`);
+                }
+            }
+        }
+
+        this._isStartup = false;
         // Registramos la ruta por si el usuario usa el botón "Atrás" luego
         this.register(viewName, ControllerClass);
         return await this._internalRun(viewName, ControllerClass, targetId, parameters, true);
