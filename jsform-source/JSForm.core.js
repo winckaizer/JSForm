@@ -11,6 +11,10 @@ export class Application {
     
     // MEJORA 1: Guardamos una referencia al controlador actual
     static _currentController = null;
+
+    // LAYOUTS: Referencias para manejar páginas maestras
+    static _currentLayout = null;
+    static _currentLayoutController = null;
     
     // MEJORA 3: Un mapa simple para saber qué controlador va con qué ruta (útil para el botón 'Atrás')
     static _routes = {};
@@ -28,7 +32,7 @@ export class Application {
                 const routeInfo = this._routes[event.state.form];
                 if (routeInfo) {
                     // Volvemos a cargar la vista anterior pero sin empujarla al historial de nuevo
-                    await this._internalRun(event.state.form, routeInfo.ControllerClass, event.state.target, null, false);
+                    await this.run(event.state.form, routeInfo.ControllerClass, event.state.target, null);
                 }
             }
         });
@@ -86,7 +90,7 @@ export class Application {
                     if (DynamicController) {
                         console.log(`[JSForm] ✅ Sesión restaurada: Cargando '${requestedView}' automáticamente.`);
                         this.register(requestedView, DynamicController);
-                        return await this._internalRun(requestedView, DynamicController, targetId, parameters, false);
+                        return await this.run(requestedView, DynamicController, targetId, parameters);
                     }
                 } catch (e) {
                     console.warn(`[JSForm] ⚠️ No se pudo restaurar la vista '${requestedView}' (¿Existe el archivo?). Se cargará la por defecto.`);
@@ -95,21 +99,77 @@ export class Application {
         }
 
         this._isStartup = false;
+
+        // ==========================================
+        // MANEJO DE LAYOUTS (Master Pages)
+        // Verifica si el controlador pide un layout específico
+        // ==========================================
+        let finalTargetId = targetId;
+
+        if (ControllerClass.layout) {
+            const layoutConfig = ControllerClass.layout; // Ej: { view: 'main', target: 'content-wrapper' }
+            
+            // Si el layout requerido no está activo, lo cargamos primero
+            if (this._currentLayout !== layoutConfig.view) {
+                console.log(`[JSForm] 📐 Cargando Layout: ${layoutConfig.view}...`);
+                
+                // Convenciones: Layout 'main' -> app/forms/Main/main.controller.js
+                const folderName = layoutConfig.view.charAt(0).toUpperCase() + layoutConfig.view.slice(1);
+                const fileName = layoutConfig.view.toLowerCase();
+                const layoutPath = `/app/forms/${folderName}/${fileName}.controller.js`;
+
+                try {
+                    // Limpiar layout anterior si existe
+                    if (this._currentLayoutController && typeof this._currentLayoutController.onDestroy === 'function') {
+                        this._currentLayoutController.onDestroy();
+                    }
+
+                    const module = await import(layoutPath);
+                    const LayoutClass = module[`${folderName}Controller`];
+                    
+                    // Cargamos el Layout en el root (sin empujar al historial)
+                    // isLayout = true para evitar que se confunda con la página actual
+                    this._currentLayoutController = await this._internalRun(layoutConfig.view, LayoutClass, null, null, false, true);
+                    this._currentLayout = layoutConfig.view;
+
+                } catch (e) {
+                    console.error(`[JSForm] ❌ Error cargando Layout '${layoutConfig.view}':`, e);
+                    // Si falla el layout, intentamos cargar la vista normal en el root
+                    this._currentLayout = null; 
+                }
+            }
+
+            // Si tenemos layout activo, redirigimos la vista hija a su contenedor interno
+            if (this._currentLayout === layoutConfig.view) {
+                finalTargetId = layoutConfig.target;
+            }
+        } else {
+            // Si la vista NO tiene layout, pero teníamos uno activo, limpiamos referencias
+            // Esto pasa si navegas de una página interna al Login, por ejemplo.
+            if (this._currentLayout) {
+                if (this._currentLayoutController && typeof this._currentLayoutController.onDestroy === 'function') {
+                    this._currentLayoutController.onDestroy();
+                }
+                this._currentLayout = null;
+                this._currentLayoutController = null;
+            }
+        }
+
         // Registramos la ruta por si el usuario usa el botón "Atrás" luego
         this.register(viewName, ControllerClass);
-        return await this._internalRun(viewName, ControllerClass, targetId, parameters, true);
+        return await this._internalRun(viewName, ControllerClass, finalTargetId, parameters, true);
     }
 
     /**
      * Internal runner logic to handle history pushing conditionally.
      */
-    static async _internalRun(viewName, ControllerClass, targetId, parameters, pushHistory) {
+    static async _internalRun(viewName, ControllerClass, targetId, parameters, pushHistory, isLayout = false) {
         const finalTargetId = targetId || this.AppConfig.router.defaultTarget;
         const rootContainer = document.getElementById(finalTargetId);
 
         try {
             // MEJORA 1 (Destrucción): Si hay un controlador activo, le avisamos que va a morir
-            if (this._currentController && typeof this._currentController.onDestroy === 'function') {
+            if (!isLayout && this._currentController && typeof this._currentController.onDestroy === 'function') {
                 this._currentController.onDestroy();
                 console.log(`[JSForm] 🧹 Cleaned up previous controller.`);
             }
@@ -151,7 +211,9 @@ export class Application {
             const formInstance = new ControllerClass(parameters);
             
             // Actualizamos nuestra referencia global al nuevo controlador
-            this._currentController = formInstance;
+            if (!isLayout) {
+                this._currentController = formInstance;
+            }
             
             return formInstance;
             

@@ -92,6 +92,10 @@ export class MessageBox {
             dialog.style.left = `calc(50% - ${dialog.offsetWidth / 2}px)`;
             dialog.style.top = `calc(50% - ${dialog.offsetHeight / 2}px)`;
 
+            // Inicializar las posiciones actuales para el drag and drop
+            dialog.style.left = dialog.offsetLeft + "px";
+            dialog.style.top = dialog.offsetTop + "px";
+
             // 4. Implementar la lógica de arrastre (drag and drop)
             this.makeDraggable(dialog, header);
         });
@@ -110,6 +114,8 @@ export class MessageBox {
             // Posición inicial del cursor
             pos3 = e.clientX;
             pos4 = e.clientY;
+            // Asegurar que el elemento tenga posición absoluta/fixed explícita para moverse
+            // (Ya lo tiene por CSS, pero esto asegura el comportamiento)
             // Añadir los eventos de movimiento y soltar al documento
             document.onmouseup = closeDragElement;
             document.onmousemove = elementDrag;
@@ -122,7 +128,9 @@ export class MessageBox {
             pos2 = pos4 - e.clientY;
             pos3 = e.clientX;
             pos4 = e.clientY;
-            // Establecer la nueva posición del elemento
+            
+            // Calcular la nueva posición basada en el offset actual menos el desplazamiento
+            // Nota: offsetTop/Left son relativos al padre posicionado más cercano (el overlay fixed)
             element.style.top = (element.offsetTop - pos2) + "px";
             element.style.left = (element.offsetLeft - pos1) + "px";
         };
