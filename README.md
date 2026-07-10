@@ -180,6 +180,47 @@ cargarUsuarios() {
 *   `npm run preview`: Levanta un servidor para probar la versión de producción de la carpeta `/dist`.
 *   `jsform update`: Actualiza los archivos del núcleo de JSForm, incluyendo componentes, páginas de error y archivos de ayuda, en un proyecto existente sin sobreescribir tu código.
 
+### JSForm.i18n
+
+Un servicio integrado para manejar múltiples idiomas de forma sencilla y declarativa.
+
+1.  **Crea tus archivos de idioma:** En `app/i18n/`, crea archivos como `es.json` y `en.json`. Puedes anidar claves para una mejor organización.
+
+    ```json
+    // en app/i18n/es.json
+    {
+      "login": {
+        "title": "Iniciar Sesión",
+        "user_placeholder": "Escribe tu usuario",
+        "submit_tooltip": "Haz clic para entrar"
+      },
+      "welcome_message": "Bienvenido, {user}."
+    }
+    ```
+
+2.  **Marca tu HTML:** Usa los atributos `data-i18n` de forma inteligente.
+
+    *   **Contenido y Placeholders:** `data-i18n` traduce el `innerHTML` de la mayoría de los elementos. Si se usa en un `<input>` o `<textarea>`, traduce el `placeholder` automáticamente.
+    *   **Atributos Específicos:** Usa `data-i18n-title` para tooltips y `data-i18n-attr-*` para cualquier otro atributo (ej. `aria-label`).
+
+    ```html
+    <h2 data-i18n="login.title"></h2>
+    <input type="text" id="txtUser" data-i18n="login.user_placeholder">
+    <button data-i18n-title="login.submit_tooltip">Entrar</button>
+    ```
+
+3.  **Uso en Código:** Cambia de idioma o genera textos dinámicos fácilmente.
+
+    ```javascript
+    import { i18n } from '../../core/JSForm.i18n.js';
+
+    // Cambiar idioma (el segundo parámetro es el contenedor de la vista)
+    i18n.setLanguage('en', this.mainPanel);
+
+    // Obtener texto con parámetros
+    const saludo = i18n.get('welcome_message', { user: 'Ana' }); // "Bienvenido, Ana."
+    ```
+
 ## 📦 Para Contribuidores: Publicar en NPM
 
 El CLI no usa los archivos de `jsform-source/` directamente. En su lugar, se empaquetan en `bin/framework-files.json` antes de publicar.

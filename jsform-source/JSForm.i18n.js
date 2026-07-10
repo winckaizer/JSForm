@@ -55,23 +55,21 @@ export class i18n {
 
     /**
      * Aplica las traducciones a los elementos del DOM dentro de un contenedor.
-     * Busca elementos con el atributo `data-i18n`.
      * @param {HTMLElement} container - El elemento contenedor donde buscar.
      */
     static apply(container) {
         if (!container) return;
 
+        // 1. Traducción de contenido principal (innerHTML) o placeholder
         container.querySelectorAll('[data-i18n]').forEach(element => {
             const key = element.dataset.i18n;
             const translation = this._resolveKey(key, this._translations);
 
             if (translation !== undefined) {
-                // Determinar si traducir una propiedad o un atributo
-                // Usamos endsWith para ser más precisos y evitar falsos positivos
-                if (key.endsWith('_placeholder')) {
+                const tagName = element.tagName.toUpperCase();
+                // MEJORA: Detección automática para inputs y textareas
+                if (tagName === 'INPUT' || tagName === 'TEXTAREA') {
                     element.placeholder = translation;
-                } else if (key.endsWith('_title')) {
-                    element.title = translation;
                 } else {
                     element.innerHTML = translation;
                 }
@@ -79,6 +77,35 @@ export class i18n {
                 console.warn(`[JSForm.i18n] ⚠️ Clave no encontrada: '${key}'`);
             }
         });
+
+        // 2. MEJORA: Traducción de atributos 'title' con data-i18n-title
+        container.querySelectorAll('[data-i18n-title]').forEach(element => {
+            const key = element.dataset.i18nTitle;
+            const translation = this._resolveKey(key, this._translations);
+            if (translation !== undefined) {
+                element.title = translation;
+            } else {
+                console.warn(`[JSForm.i18n] ⚠️ Clave de título no encontrada: '${key}'`);
+            }
+        });
+
+        // 3. MEJORA: Traducción de cualquier atributo con data-i18n-attr-*
+        // Busca atributos que empiecen con 'data-i18n-attr-'
+        const attrSelectors = ['aria-label', 'alt', 'value']; // Añade más atributos comunes aquí
+        const query = attrSelectors.map(attr => `[data-i18n-attr-${attr}]`).join(', ');
+
+        if (query) {
+            container.querySelectorAll(query).forEach(element => {
+                for (const dataAttr in element.dataset) {
+                    if (dataAttr.startsWith('i18nAttr')) {
+                        // Convierte 'i18nAttrAriaLabel' a 'aria-label'
+                        const attributeName = dataAttr.substring(8).replace(/([A-Z])/g, "-$1").toLowerCase();
+                        const key = element.dataset[dataAttr];
+                        element.setAttribute(attributeName, this.get(key));
+                    }
+                }
+            });
+        }
     }
 
     /**
@@ -96,12 +123,24 @@ export class i18n {
     /**
      * Obtiene una traducción específica por su clave.
      * Útil para usar en código (ej. en un MessageBox).
+     * MEJORA: Ahora soporta parámetros.
      * @param {string} key - La clave de la traducción.
+     * @param {object} [params] - Un objeto con los parámetros a reemplazar.
      * @returns {string} El texto traducido o la clave si no se encuentra.
      */
-    static get(key) {
-        const translation = this._resolveKey(key, this._translations);
-        return translation !== undefined ? translation : key;
+    static get(key, params = null) {
+        let translation = this._resolveKey(key, this._translations);
+        if (translation === undefined) {
+            console.warn(`[JSForm.i18n] ⚠️ Clave no encontrada en get(): '${key}'`);
+            return key;
+        }
+
+        if (params) {
+            Object.keys(params).forEach(paramKey => {
+                translation = translation.replace(new RegExp(`{${paramKey}}`, 'g'), params[paramKey]);
+            });
+        }
+        return translation;
     }
 
     /**

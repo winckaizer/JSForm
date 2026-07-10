@@ -299,8 +299,46 @@ try {
 }
 </code></pre>
         <p>Puedes personalizar los archivos <code>400.html</code>, <code>404.html</code>, <code>500.html</code> (y añadir otros) en la carpeta <code>assets/errors/</code> de tu proyecto. Si una página de error específica no se encuentra, se mostrará un mensaje genérico.</p>
+        
+        <h2>7. Internacionalización (i18n) con JSForm.i18n</h2>
+        <p>JSForm incluye un servicio integrado para manejar múltiples idiomas de forma sencilla y declarativa.</p>
+        <ol>
+            <li><strong>Crea tus archivos de idioma:</strong> En <code>app/i18n/</code>, crea archivos como <code>es.json</code> y <code>en.json</code>. Puedes anidar claves para una mejor organización.
+                <pre><code class="language-json">// en app/i18n/es.json
+{
+  "login": {
+    "title": "Iniciar Sesión",
+    "user_placeholder": "Escribe tu usuario",
+    "submit_tooltip": "Haz clic para entrar"
+  },
+  "welcome_message": "Bienvenido, {user}."
+}
+</code></pre>
+            </li>
+            <li><strong>Marca tu HTML:</strong> Usa los atributos <code>data-i18n</code> de forma inteligente.
+                <ul>
+                    <li><b>Contenido y Placeholders:</b> <code>data-i18n</code> traduce el <code>innerHTML</code> de la mayoría de los elementos. Si se usa en un <code>&lt;input&gt;</code> o <code>&lt;textarea&gt;</code>, traduce el <code>placeholder</code> automáticamente.</li>
+                    <li><b>Atributos Específicos:</b> Usa <code>data-i18n-title</code> para tooltips y <code>data-i18n-attr-*</code> para cualquier otro atributo (ej. <code>aria-label</code>).</li>
+                </ul>
+                <pre><code class="language-html">&lt;h2 data-i18n="login.title"&gt;&lt;/h2&gt;
+&lt;input type="text" id="txtUser" data-i18n="login.user_placeholder"&gt;
+&lt;button data-i18n-title="login.submit_tooltip"&gt;Entrar&lt;/button&gt;
+</code></pre>
+            </li>
+            <li><strong>Uso en Código:</strong> Cambia de idioma o genera textos dinámicos fácilmente.
+                <pre><code class="language-javascript">import { i18n } from '../../core/JSForm.i18n.js';
 
-        <h2>7. Ejemplo Completo: Un Formulario de Login</h2>
+// Cambiar idioma (el segundo parámetro es el contenedor de la vista)
+i18n.setLanguage('en', this.mainPanel);
+
+// Obtener texto con parámetros
+const saludo = i18n.get('welcome_message', { user: 'Ana' }); // "Bienvenido, Ana."
+MessageBox.show('Saludo', saludo);
+</code></pre>
+            </li>
+        </ol>
+
+        <h2>8. Ejemplo Completo: Un Formulario de Login</h2>
         <p>Este es un ejemplo de cómo se verían las piezas juntas para un formulario de login.</p>
 
         <h4>1. Crea la carpeta <code>app/forms/Login</code></h4>
@@ -310,10 +348,10 @@ try {
 
         <h4>2. Edita <code>login.html</code></h4>
         <pre><code class="language-html">&lt;div id="loginPanel"&gt;
-    &lt;h2&gt;Iniciar Sesión&lt;/h2&gt;
-    &lt;input type="text" id="txtUsuario" placeholder="Usuario"&gt;
+    &lt;h2 data-i18n="login.title"&gt;&lt;/h2&gt;
+    &lt;input type="text" id="txtUsuario" data-i18n="login.user_placeholder"&gt;
     &lt;input type="password" id="txtPassword" placeholder="Contraseña"&gt;
-    &lt;button id="btnLogin"&gt;Entrar&lt;/button&gt;
+    &lt;button id="btnLogin" data-i18n-title="login.submit_tooltip"&gt;Entrar&lt;/button&gt;
     &lt;div id="lblMensaje"&gt;&lt;/div&gt;
 &lt;/div&gt;
 </code></pre>
@@ -378,7 +416,7 @@ import { LoginController } from './forms/Login/login.controller.js';
 
 class Program {
     static async main() {
-        Application.init();
+        await Application.init(); // init ahora es asíncrono por i18n
         
         // Lanzamos nuestro formulario de Login como vista inicial
         await Application.run('login', LoginController);
@@ -386,10 +424,9 @@ class Program {
 }
 
 Program.main();
-</code>
-</pre>
+</code></pre>
 
-        <h2>8. Comandos del CLI</h2>
+        <h2>9. Comandos del CLI</h2>
         <ul>
             <li><code>npm run dev</code>: Inicia el entorno de desarrollo con recarga en caliente.</li>
             <li><code>npm run build</code>: Compila y ofusca tu aplicación para producción. El resultado queda en la
