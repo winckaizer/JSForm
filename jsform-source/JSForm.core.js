@@ -1,5 +1,6 @@
 // core/JSForm.Core.js
 import Config from '../jsform.config.js';
+import { i18n } from './JSForm.i18n.js';
 
 /**
  * Main Application class responsible for rendering views and handling routing.
@@ -25,7 +26,7 @@ export class Application {
     /**
      * Initializes the application and sets up browser history listening.
      */
-    static init() {
+    static async init() {
         // MEJORA 2: Escuchamos cuando el usuario presiona "Atrás" o "Adelante" en el navegador
         window.addEventListener('popstate', async (event) => {
             if (event.state && event.state.form) {
@@ -36,6 +37,9 @@ export class Application {
                 }
             }
         });
+
+        // Inicializar el servicio de internacionalización
+        await i18n.init();
         console.log("🚀 JSForm Application Core initialized.");
     }
 
@@ -197,6 +201,9 @@ export class Application {
             }
             
             rootContainer.innerHTML = await response.text();
+
+            // MEJORA i18n: Aplicar traducciones automáticamente
+            i18n.apply(rootContainer);
 
             // 4. Update browser URL without reloading (History API)
             const newUrl = `${this.AppConfig.router.basePath}/${fileName}`;

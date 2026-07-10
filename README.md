@@ -180,6 +180,14 @@ cargarUsuarios() {
 *   `npm run preview`: Levanta un servidor para probar la versión de producción de la carpeta `/dist`.
 *   `jsform update`: Actualiza los archivos del núcleo de JSForm, incluyendo componentes, páginas de error y archivos de ayuda, en un proyecto existente sin sobreescribir tu código.
 
+## 📦 Para Contribuidores: Publicar en NPM
+
+El CLI no usa los archivos de `jsform-source/` directamente. En su lugar, se empaquetan en `bin/framework-files.json` antes de publicar.
+
+1.  Realiza tus cambios en los archivos dentro de `jsform-source/`.
+2.  Ejecuta `npm run build-fw` para actualizar el paquete de archivos.
+3.  Publica en NPM con `npm publish`. El script `prepublishOnly` se encargará de ejecutar el build automáticamente.
+
 ## 🤝 Contribuciones
 
 Las contribuciones son bienvenidas. Por favor, abre un *issue* para discutir cambios importantes o un *pull request* para correcciones.

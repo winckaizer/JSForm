@@ -1,51 +1,54 @@
 const fs = require('fs');
 const path = require('path');
 
-
-console.log('📦 Empaquetando el framework JSForm...');
-
 const sourceDir = path.join(__dirname, '..', 'jsform-source');
 const targetFile = path.join(__dirname, '..', 'bin', 'framework-files.json');
 
-// Lista de archivos a empaquetar.
-// Estos nombres deben coincidir con los de la carpeta jsform-source
-const filesToPack = [
+const filesToBundle = [
     'compiler.js',
-    'JSForm.core.js',
+    'JSForm.Core.js',
     'JSForm.state.js',
     'JSForm.Control.js',
     'JSForm.config.js',
+    'JSForm.i18n.js',
     'program.js',
-    'jsform-icon.png', // Archivo binario
+    'jsform-icon.png',
     'JSForm.MessageBox.js',
     'JSForm.MessageBox.css',
-    '400.html',
-    '404.html',
-    '500.html',
     'JSForm.DataGridView.js',
     'JSForm.HttpClient.js',
     'template.index.html',
     'template.main.css',
-    'template.jsform-help-me.html'
+    'template.jsform-help-me.html',
+    '400.html',
+    '404.html',
+    '500.html'
 ];
 
-const frameworkData = {};
+const binaryExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.ico'];
+const frameworkFiles = {};
 
-filesToPack.forEach(fileName => {
+console.log('📦 Empaquetando archivos del framework...');
+
+filesToBundle.forEach(fileName => {
     const filePath = path.join(sourceDir, fileName);
     if (fs.existsSync(filePath)) {
-        const isBinary = path.extname(fileName).toLowerCase() === '.png';
-        const encoding = isBinary ? 'base64' : 'utf8';
-        const content = fs.readFileSync(filePath, { encoding });
+        const fileExt = path.extname(fileName).toLowerCase();
+        const isBinary = binaryExtensions.includes(fileExt);
 
-        frameworkData[fileName] = { encoding, content };
-        console.log(`  -> Añadido: ${fileName} (codificación: ${encoding})`);
+        const content = fs.readFileSync(filePath);
+        const encoding = isBinary ? 'base64' : 'utf8';
+
+        frameworkFiles[fileName] = {
+            encoding: encoding,
+            content: content.toString(encoding)
+        };
+        console.log(`  -> Añadido: ${fileName} (como ${encoding})`);
     } else {
-        console.warn(`  -> ⚠️  Advertencia: No se encontró el archivo ${fileName}`);
+        console.warn(`  -> ⚠️  Aviso: Archivo no encontrado, se omitirá: ${fileName}`);
     }
 });
 
-// Escribir el JSON final
-fs.writeFileSync(targetFile, JSON.stringify(frameworkData, null, 2));
+fs.writeFileSync(targetFile, JSON.stringify(frameworkFiles, null, 2));
 
-console.log(`\n✅ ¡Empaquetado completado! El archivo ${path.basename(targetFile)} ha sido actualizado.`);
+console.log(`\n✅ Framework empaquetado con éxito en ${targetFile}`);

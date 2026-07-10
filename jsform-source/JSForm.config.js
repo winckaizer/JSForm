@@ -48,6 +48,10 @@ export default {
     // ==========================================
     ui: {
         theme: 'light', // Preparado para un futuro soporte de temas (Dark/Light)
-        defaultLanguage: 'es'
+        defaultLanguage: 'es',
+
+        i18n: {
+            path: '/app/i18n' // Ruta a la carpeta con los archivos de idioma (ej. es.json, en.json)
+        }
     }
 };

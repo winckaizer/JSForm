@@ -18,6 +18,7 @@ const fileRouting = {
     'jsform.state.js': 'core/JSForm.State.js',
     'jsform.control.js': 'core/JSForm.Control.js',
     'jsform.config.js': 'jsform.config.js',
+    'jsform.i18n.js': 'core/JSForm.i18n.js',
     'program.js': 'app/program.js',
     'jsform-icon.png': 'assets/img/jsform-icon.png',
     'jsform.messagebox.js': 'core/JSForm.MessageBox.js',
@@ -54,7 +55,7 @@ if (command === 'init') {
     }
 
     // 3. Crear la estructura de carpetas estándar
-    const folders = ['core', 'app', 'app/forms', 'assets', 'assets/css', 'assets/img', 'assets/vendors', 'assets/errors'];
+    const folders = ['core', 'app', 'app/forms', 'app/i18n', 'assets', 'assets/css', 'assets/img', 'assets/vendors', 'assets/errors'];
     folders.forEach(folder => {
         fs.mkdirSync(path.join(targetDir, folder), { recursive: true });
     });
@@ -149,6 +150,22 @@ export default defineConfig({
     fs.writeFileSync(path.join(targetDir, 'vite.config.js'), viteConfig);
     console.log(`  -> Creado: vite.config.js (configurado con HTTPS)`);
 
+    // 6.4. Crear archivos de ejemplo para i18n
+    const i18nEs = `{
+    "welcome_title": "Bienvenido a JSForm",
+    "welcome_subtitle": "Tu arquitectura estilo WinForms está lista.",
+    "welcome_instruction": "Ve a &lt;b&gt;app/forms&lt;/b&gt; y crea una nueva carpeta para empezar."
+}`;
+    const i18nEn = `{
+    "welcome_title": "Welcome to JSForm",
+    "welcome_subtitle": "Your WinForms-style architecture is ready.",
+    "welcome_instruction": "Go to &lt;b&gt;app/forms&lt;/b&gt; and create a new folder to start."
+}`;
+    fs.writeFileSync(path.join(targetDir, 'app/i18n/es.json'), i18nEs);
+    console.log(`  -> Creado: app/i18n/es.json (ejemplo de idioma)`);
+    fs.writeFileSync(path.join(targetDir, 'app/i18n/en.json'), i18nEn);
+    console.log(`  -> Creado: app/i18n/en.json (ejemplo de idioma)`);
+
     console.log(`\n✅ ¡Proyecto '${projectName}' creado!`);
 
     // 8. Ejecutar npm install automáticamente
@@ -204,6 +221,7 @@ else if (command === 'update') {
         'jsform.messagebox.css', // Añadido para futuras actualizaciones
         'jsform.datagridview.js', // Añadido para futuras actualizaciones
         'jsform.httpclient.js', // Añadido para futuras actualizaciones
+        'jsform.i18n.js', // Añadido para la funcionalidad de i18n
         '400.html',
         '404.html',
         '500.html',
@@ -242,6 +260,15 @@ else if (command === 'update') {
 }
 
 // ==========================================
+// COMANDO: jsform -v / --version
+// ==========================================
+else if (command === '-v' || command === '--version' || command === '-version') {
+    const cliPackageJsonPath = path.join(__dirname, '..', 'package.json');
+    const cliVersion = JSON.parse(fs.readFileSync(cliPackageJsonPath, 'utf8')).version;
+    console.log(`jsform-cli v${cliVersion}`);
+}
+
+// ==========================================
 // COMANDO NO RECONOCIDO O VACÍO
 // ==========================================
 else {
@@ -250,4 +277,5 @@ else {
     console.log('Comandos disponibles:');
     console.log('  jsform init <nombre>  -> Crea un proyecto nuevo con servidor local y auto-recarga');
     console.log('  jsform update         -> Actualiza los archivos core del proyecto actual de forma segura');
+    console.log('  jsform -v, --version  -> Muestra la versión del CLI instalada');
 }
