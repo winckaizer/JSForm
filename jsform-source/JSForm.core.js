@@ -65,39 +65,62 @@ export class Application {
         // AUTO-ROUTING EN DESARROLLO (Hot Reload Support)
         // Permite recargar la página en la vista actual en lugar de volver al inicio.
         // ==========================================
+        // CORRECCIÓN: La lógica ahora también maneja la carga del layout requerido por la vista.
         if (this._isStartup && this.AppConfig.environment === 'development') {
             this._isStartup = false; 
 
             const path = window.location.pathname;
             const base = this.AppConfig.router.basePath || '';
             let requestedView = path;
-
-            // Limpiar basePath y slashes iniciales/finales
+            
             if (base && path.startsWith(base)) requestedView = path.substring(base.length);
             requestedView = requestedView.replace(/^\/+|\/+$/g, '');
 
-            // Si hay una ruta en la URL y es diferente a la por defecto (ej. '/dashboard' vs 'login')
             if (requestedView && requestedView !== 'index.html' && requestedView.toLowerCase() !== viewName.toLowerCase()) {
                 console.log(`[JSForm] 🔍 Detectada ruta en URL: '${requestedView}'. Intentando restaurar sesión...`);
-
-                // Asumimos convención: nombrevista -> /app/forms/Nombrevista/nombrevista.controller.js
+                
                 const folderName = requestedView.charAt(0).toUpperCase() + requestedView.slice(1);
                 const fileName = requestedView.toLowerCase();
 
                 try {
-                    // Importación dinámica del módulo del controlador
                     const modulePath = `/app/forms/${folderName}/${fileName}.controller.js`;
-                    const module = await import(modulePath); // Funciona nativamente en navegadores modernos/Vite
+                    const module = await import(modulePath);
                     const className = `${folderName}Controller`;
                     const DynamicController = module[className];
 
                     if (DynamicController) {
-                        console.log(`[JSForm] ✅ Sesión restaurada: Cargando '${requestedView}' automáticamente.`);
-                        this.register(requestedView, DynamicController);
-                        return await this.run(requestedView, DynamicController, targetId, parameters);
+                        let targetForChildView = targetId;
+
+                        // 1. Si el controlador dinámico requiere un layout, lo cargamos primero.
+                        if (DynamicController.layout) {
+                            const layoutConfig = DynamicController.layout;
+                            console.log(`[JSForm] 📐 Layout '${layoutConfig.view}' requerido. Cargando...`);
+
+                            const layoutFolderName = layoutConfig.view.charAt(0).toUpperCase() + layoutConfig.view.slice(1);
+                            const layoutFileName = layoutConfig.view.toLowerCase();
+                            const layoutPath = `/app/forms/${layoutFolderName}/${layoutFileName}.controller.js`;
+                            
+                            const layoutModule = await import(layoutPath);
+                            const LayoutController = layoutModule[`${layoutFolderName}Controller`];
+
+                            if (LayoutController) {
+                                this._currentLayoutController = await this._internalRun(layoutConfig.view, LayoutController, null, null, false, true);
+                                this._currentLayout = layoutConfig.view;
+                                targetForChildView = layoutConfig.target; // El nuevo target es el contenedor del layout
+                            }
+                        }
+
+                        // 2. Ahora cargamos la vista solicitada en el target correcto (sea el root o el del layout)
+                        console.log(`[JSForm] ✅ Sesión restaurada: Cargando vista '${requestedView}'...`);
+                        this.register(requestedView, DynamicController); // Registrar para el historial
+                        const controller = await this._internalRun(requestedView, DynamicController, targetForChildView, parameters, true, false);
+                        this._currentController = controller;
+                        
+                        // 3. Retornamos para evitar que se ejecute la vista por defecto de program.js
+                        return controller;
                     }
                 } catch (e) {
-                    console.warn(`[JSForm] ⚠️ No se pudo restaurar la vista '${requestedView}' (¿Existe el archivo?). Se cargará la por defecto.`);
+                    console.warn(`[JSForm] ⚠️ No se pudo restaurar la sesión para '${requestedView}' (Error: ${e.message}). Se cargará la vista por defecto.`);
                 }
             }
         }

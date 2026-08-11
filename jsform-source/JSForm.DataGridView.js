@@ -2,7 +2,8 @@
 
 const SCRIPT_URLS = {
     JQUERY: 'https://code.jquery.com/jquery-3.7.0.js',
-    DATATABLES: 'https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js'
+    DATATABLES_JS: 'https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js',
+    DATATABLES_CSS: 'https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css'
 };
 
 const _loadedScripts = new Map();
@@ -35,7 +36,8 @@ export class DataGridView {
      */
     static async create(targetId, options = {}) {
         await this._loadScript(SCRIPT_URLS.JQUERY);
-        await this._loadScript(SCRIPT_URLS.DATATABLES);
+        await this._loadScript(SCRIPT_URLS.DATATABLES_JS);
+        await this._loadStyle(SCRIPT_URLS.DATATABLES_CSS); // Cargar el CSS
         return new DataGridView(targetId, options);
     }
 
@@ -69,6 +71,33 @@ export class DataGridView {
         });
 
         _loadedScripts.set(url, promise); // Guardar la promesa para evitar recargas
+        return promise;
+    }
+
+    /**
+     * MEJORA: Carga una hoja de estilos dinámicamente si no ha sido cargada antes.
+     * @param {string} url - La URL de la hoja de estilos.
+     * @returns {Promise<void>}
+     * @private
+     */
+    static _loadStyle(url) {
+        if (_loadedScripts.has(url)) {
+            return _loadedScripts.get(url);
+        }
+
+        const promise = new Promise((resolve, reject) => {
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = url;
+            link.onload = () => {
+                console.log(`[JSForm] ✅ Estilo cargado: ${url}`);
+                resolve();
+            };
+            link.onerror = () => reject(new Error(`No se pudo cargar el estilo: ${url}`));
+            document.head.appendChild(link);
+        });
+
+        _loadedScripts.set(url, promise);
         return promise;
     }
 

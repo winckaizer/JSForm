@@ -60,52 +60,31 @@ export class i18n {
     static apply(container) {
         if (!container) return;
 
-        // 1. Traducción de contenido principal (innerHTML) o placeholder
-        container.querySelectorAll('[data-i18n]').forEach(element => {
-            const key = element.dataset.i18n;
-            const translation = this._resolveKey(key, this._translations);
+        // MEJORA: Un solo query para todos los elementos, iterando su dataset.
+        // Es más genérico y a menudo más eficiente que múltiples querySelectorAll.
+        container.querySelectorAll('*').forEach(element => {
+            if (Object.keys(element.dataset).length === 0) return;
 
-            if (translation !== undefined) {
-                const tagName = element.tagName.toUpperCase();
-                // MEJORA: Detección automática para inputs y textareas
-                if (tagName === 'INPUT' || tagName === 'TEXTAREA') {
-                    element.placeholder = translation;
-                } else {
-                    element.innerHTML = translation;
-                }
-            } else {
-                console.warn(`[JSForm.i18n] ⚠️ Clave no encontrada: '${key}'`);
-            }
-        });
+            for (const dataAttr in element.dataset) {
+                const key = element.dataset[dataAttr];
+                if (!key) continue;
 
-        // 2. MEJORA: Traducción de atributos 'title' con data-i18n-title
-        container.querySelectorAll('[data-i18n-title]').forEach(element => {
-            const key = element.dataset.i18nTitle;
-            const translation = this._resolveKey(key, this._translations);
-            if (translation !== undefined) {
-                element.title = translation;
-            } else {
-                console.warn(`[JSForm.i18n] ⚠️ Clave de título no encontrada: '${key}'`);
-            }
-        });
-
-        // 3. MEJORA: Traducción de cualquier atributo con data-i18n-attr-*
-        // Busca atributos que empiecen con 'data-i18n-attr-'
-        const attrSelectors = ['aria-label', 'alt', 'value']; // Añade más atributos comunes aquí
-        const query = attrSelectors.map(attr => `[data-i18n-attr-${attr}]`).join(', ');
-
-        if (query) {
-            container.querySelectorAll(query).forEach(element => {
-                for (const dataAttr in element.dataset) {
-                    if (dataAttr.startsWith('i18nAttr')) {
-                        // Convierte 'i18nAttrAriaLabel' a 'aria-label'
-                        const attributeName = dataAttr.substring(8).replace(/([A-Z])/g, "-$1").toLowerCase();
-                        const key = element.dataset[dataAttr];
-                        element.setAttribute(attributeName, this.get(key));
+                if (dataAttr === 'i18n') {
+                    const translation = this.get(key);
+                    const tagName = element.tagName.toUpperCase();
+                    if (tagName === 'INPUT' || tagName === 'TEXTAREA') {
+                        element.placeholder = translation;
+                    } else {
+                        element.innerHTML = translation;
                     }
+                } else if (dataAttr === 'i18nTitle') {
+                    element.title = this.get(key);
+                } else if (dataAttr.startsWith('i18nAttr')) {
+                    const attributeName = dataAttr.substring(8).replace(/([A-Z])/g, "-$1").toLowerCase();
+                    if (attributeName) element.setAttribute(attributeName, this.get(key));
                 }
-            });
-        }
+            }
+        });
     }
 
     /**

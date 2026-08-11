@@ -19,20 +19,30 @@ export class Control {
 
     // Aplica propiedades, estilos y eventos de forma masiva
     applyOptions(options) {
-        if (options.text) this.element.innerText = options.text;
-        if (options.html) this.element.innerHTML = options.html;
-        if (options.className) this.element.className = options.className;
-        if (options.value) this.element.value = options.value;
-        
-        // Aplicar estilos inline si existen
-        if (options.style) {
-            Object.assign(this.element.style, options.style);
-        }
-
-        // Suscribir eventos dinámicos (ej. { click: () => alert('Hola') })
-        if (options.events) {
-            for (const [eventName, handler] of Object.entries(options.events)) {
-                this.element.addEventListener(eventName, handler);
+        // MEJORA: Iterar sobre las opciones para mayor flexibilidad
+        for (const [key, value] of Object.entries(options)) {
+            switch (key) {
+                case 'text':
+                    this.element.innerText = value;
+                    break;
+                case 'html':
+                    this.element.innerHTML = value;
+                    break;
+                case 'className':
+                    this.element.className = value;
+                    break;
+                case 'style':
+                    Object.assign(this.element.style, value);
+                    break;
+                case 'events':
+                    for (const [eventName, handler] of Object.entries(value)) {
+                        this.element.addEventListener(eventName, handler);
+                    }
+                    break;
+                default:
+                    // Para cualquier otra opción, la tratamos como un atributo HTML
+                    this.element.setAttribute(key, value);
+                    break;
             }
         }
     }

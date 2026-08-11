@@ -118,8 +118,13 @@ export class HttpClient {
         } catch (err) {
             // 6. Manejar errores (de red, timeout, o de la API)
             if (typeof error === 'function') {
+                // El callback de error local tiene prioridad
                 error(err, err.response?.status, err.data);
+            } else if (typeof Config.api.globalErrorHandler === 'function') {
+                // Si no hay callback local, se usa el manejador global si existe
+                Config.api.globalErrorHandler(err, err.response?.status, err.data);
             } else {
+                // Fallback a la consola si no hay ningún manejador
                 console.error('[HttpClient] Error:', err);
             }
         } finally {

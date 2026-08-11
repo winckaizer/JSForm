@@ -40,6 +40,14 @@ export default {
         jsonPlaceholder: {
             baseUrl: 'https://jsonplaceholder.typicode.com',
             timeout: 8000
+        },
+
+        // MEJORA SUGERIDA: Añadir un manejador de errores global
+        globalErrorHandler: (error, status, data) => {
+            console.error(`[HttpClient Global Error] Status: ${status}`, error);
+            // Por ejemplo, podrías usar MessageBox aquí para mostrar un error estándar
+            // import { MessageBox } from './core/JSForm.MessageBox.js';
+            // MessageBox.show('Error de Conexión', 'No se pudo completar la petición.');
         }
     },
 

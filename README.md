@@ -38,7 +38,11 @@ export class LoginController extends LoginDesigner {
 *   **Auto-Binding de Eventos**: Enlaza eventos del DOM a métodos del controlador por convención de nombres (`btnGuardar_click`).
 *   **Componentes Reutilizables**: Incluye `MessageBox`, `DataGridView` (adaptador para DataTables.js) y un `HttpClient`.
 *   **Compilación para Producción**: Integrado con Vite para empaquetar, minificar y ofuscar tu aplicación con `npm run build`.
-*   **Manejo de Errores Personalizable**: Muestra páginas de error amigables para códigos HTTP (400, 404, 500) cuando una vista no se encuentra o hay un error en la carga.
+*   **Soporte para Layouts/Master Pages**: Define una vista principal y carga las vistas hijas dentro de ella.
+*   **Hot Reload Inteligente**: Al refrescar el navegador, restaura la vista actual, incluyendo su layout.
+*   **Internacionalización (i18n)**: Soporte integrado para múltiples idiomas de forma declarativa.
+*   **Gestor de Estado Global**: Un `State` manager simple y reactivo para compartir datos entre componentes.
+*   **Manejo de Errores**: Muestra páginas de error personalizables para códigos HTTP (400, 404, 500).
 *   **Cero Dependencias (en el cliente)**: El framework en sí es Vanilla JS puro. Los componentes pueden cargar librerías de terceros bajo demanda.
 
 ## 📦 Instalación
