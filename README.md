@@ -16,8 +16,8 @@ JSForm rechaza la tendencia de mezclar lógica y vista en un solo archivo (como 
 *   **Controlador (`.controller.js`)**: Tu lógica de negocio pura. Hereda del diseñador, lo que permite el acceso a los controles (`this.miBoton`) y el enlazado automático de eventos.
 
 ```javascript
-// login.controller.js
-import { LoginDesigner } from './login.designer.js';
+// En app/forms/Login/Login.controller.js
+import { LoginDesigner } from './Login.designer.js';
 
 export class LoginController extends LoginDesigner {
     constructor() {

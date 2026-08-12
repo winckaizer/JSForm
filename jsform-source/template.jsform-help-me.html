@@ -114,6 +114,9 @@
             <li><code>/dist/</code>: Carpeta generada al ejecutar <code>npm run build</code>. Contiene la versión
                 optimizada y ofuscada de tu app para producción.</li>
         </ul>
+        <div class="note">
+            <strong>Convención de Nombres:</strong> El nombre de una carpeta en <code>app/forms/</code> (ej. <code>UserProfile</code>) es crucial. Define la ruta de la URL (<code>/UserProfile</code>) y el nombre base de sus archivos (<code>UserProfile.html</code>, <code>UserProfile.controller.js</code>, etc.). Se recomienda usar <strong>PascalCase</strong> para las vistas.
+        </div>
 
         <h2>3. El Auto-Binding de Eventos</h2>
         <p>Olvídate de <code>addEventListener</code>. JSForm lo hace por ti. Si tienes un botón
@@ -342,11 +345,11 @@ MessageBox.show('Saludo', saludo);
         <p>Este es un ejemplo de cómo se verían las piezas juntas para un formulario de login.</p>
 
         <h4>1. Crea la carpeta <code>app/forms/Login</code></h4>
-        <p>El compilador generará <code>login.html</code>, <code>login.designer.js</code> y
-            <code>login.controller.js</code>.
+        <p>El compilador generará <code>Login.html</code>, <code>Login.designer.js</code> y
+            <code>Login.controller.js</code>.
         </p>
 
-        <h4>2. Edita <code>login.html</code></h4>
+        <h4>2. Edita <code>Login.html</code></h4>
         <pre><code class="language-html">&lt;div id="loginPanel"&gt;
     &lt;h2 data-i18n="login.title"&gt;&lt;/h2&gt;
     &lt;input type="text" id="txtUsuario" data-i18n="login.user_placeholder"&gt;
@@ -355,13 +358,13 @@ MessageBox.show('Saludo', saludo);
     &lt;div id="lblMensaje"&gt;&lt;/div&gt;
 &lt;/div&gt;
 </code></pre>
-        <p class="note">Al guardar, <code>login.designer.js</code> se actualizará solo con <code>this.txtUsuario</code>,
+        <p class="note">Al guardar, <code>Login.designer.js</code> se actualizará solo con <code>this.txtUsuario</code>,
             <code>this.txtPassword</code>, etc.
         </p>
 
-        <h4>3. Edita <code>login.controller.js</code></h4>
+        <h4>3. Edita <code>Login.controller.js</code></h4>
         <pre>
-            <code class="language-javascript">import { LoginDesigner } from './login.designer.js';
+            <code class="language-javascript">import { LoginDesigner } from './Login.designer.js';
 import { HttpClient } from '../../core/JSForm.HttpClient.js';
 import { MessageBox } from '../../core/JSForm.MessageBox.js';
 
@@ -412,14 +415,14 @@ export class LoginController extends LoginDesigner {
         <h4>4. Lanza el formulario en <code>app/program.js</code></h4>
         <pre><code class="language-javascript">// En app/program.js
 import { Application } from '../core/JSForm.Core.js';
-import { LoginController } from './forms/Login/login.controller.js';
+import { LoginController } from './forms/Login/Login.controller.js';
 
 class Program {
     static async main() {
         await Application.init(); // init ahora es asíncrono por i18n
         
         // Lanzamos nuestro formulario de Login como vista inicial
-        await Application.run('login', LoginController);
+        await Application.run('Login', LoginController);
     }
 }
 
