@@ -57,7 +57,7 @@ watcher.on('addDir', (dirPath) => {
     if (dirPath === formsDir) return; // Ignore the root forms directory
 
     const folderName = path.basename(dirPath);
-    const baseName = folderName.toLowerCase();
+    const baseName = folderName;
     const className = folderName.charAt(0).toUpperCase() + folderName.slice(1);
 
     const htmlFile = path.join(dirPath, `${baseName}.html`);

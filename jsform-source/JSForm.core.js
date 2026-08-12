@@ -79,13 +79,14 @@ export class Application {
             if (requestedView && requestedView !== 'index.html' && requestedView.toLowerCase() !== viewName.toLowerCase()) {
                 console.log(`[JSForm] 🔍 Detectada ruta en URL: '${requestedView}'. Intentando restaurar sesión...`);
                 
-                const folderName = requestedView.charAt(0).toUpperCase() + requestedView.slice(1);
-                const fileName = requestedView.toLowerCase();
+                const folderName = requestedView;
+                const fileName = requestedView;
+                const classNamePrefix = folderName.charAt(0).toUpperCase() + folderName.slice(1);
 
                 try {
                     const modulePath = `/app/forms/${folderName}/${fileName}.controller.js`;
                     const module = await import(modulePath);
-                    const className = `${folderName}Controller`;
+                    const className = `${classNamePrefix}Controller`;
                     const DynamicController = module[className];
 
                     if (DynamicController) {
@@ -96,12 +97,13 @@ export class Application {
                             const layoutConfig = DynamicController.layout;
                             console.log(`[JSForm] 📐 Layout '${layoutConfig.view}' requerido. Cargando...`);
 
-                            const layoutFolderName = layoutConfig.view.charAt(0).toUpperCase() + layoutConfig.view.slice(1);
-                            const layoutFileName = layoutConfig.view.toLowerCase();
+                            const layoutFolderName = layoutConfig.view;
+                            const layoutFileName = layoutConfig.view;
+                            const layoutClassNamePrefix = layoutFolderName.charAt(0).toUpperCase() + layoutFolderName.slice(1);
                             const layoutPath = `/app/forms/${layoutFolderName}/${layoutFileName}.controller.js`;
                             
                             const layoutModule = await import(layoutPath);
-                            const LayoutController = layoutModule[`${layoutFolderName}Controller`];
+                            const LayoutController = layoutModule[`${layoutClassNamePrefix}Controller`];
 
                             if (LayoutController) {
                                 this._currentLayoutController = await this._internalRun(layoutConfig.view, LayoutController, null, null, false, true);
@@ -141,8 +143,9 @@ export class Application {
                 console.log(`[JSForm] 📐 Cargando Layout: ${layoutConfig.view}...`);
                 
                 // Convenciones: Layout 'main' -> app/forms/Main/main.controller.js
-                const folderName = layoutConfig.view.charAt(0).toUpperCase() + layoutConfig.view.slice(1);
-                const fileName = layoutConfig.view.toLowerCase();
+                const folderName = layoutConfig.view;
+                const fileName = layoutConfig.view;
+                const classNamePrefix = folderName.charAt(0).toUpperCase() + folderName.slice(1);
                 const layoutPath = `/app/forms/${folderName}/${fileName}.controller.js`;
 
                 try {
@@ -152,7 +155,7 @@ export class Application {
                     }
 
                     const module = await import(layoutPath);
-                    const LayoutClass = module[`${folderName}Controller`];
+                    const LayoutClass = module[`${classNamePrefix}Controller`];
                     
                     // Cargamos el Layout en el root (sin empujar al historial)
                     // isLayout = true para evitar que se confunda con la página actual
@@ -211,8 +214,8 @@ export class Application {
             rootContainer.innerHTML = "<div style='padding: 20px;'>Loading interface...</div>";
 
             // 2. Resolve view paths (assumes /app/forms/Folder/file.html structure)
-            const folderName = viewName.charAt(0).toUpperCase() + viewName.slice(1);
-            const fileName = viewName.toLowerCase();
+            const folderName = viewName;
+            const fileName = viewName;
             const htmlPath = `/app/forms/${folderName}/${fileName}.html`;
 
             // 3. Fetch and inject HTML markup
@@ -229,13 +232,14 @@ export class Application {
             i18n.apply(rootContainer);
 
             // 4. Update browser URL without reloading (History API)
-            const newUrl = `${this.AppConfig.router.basePath}/${fileName}`;
+            const newUrl = `${this.AppConfig.router.basePath}/${viewName}`;
             if (pushHistory && window.location.pathname !== newUrl) {
                 window.history.pushState({ form: viewName, target: finalTargetId }, "", newUrl);
             }
 
             // 5. Update document title based on global config
-            document.title = `${folderName} - ${this.AppConfig.appName}`;
+            const classNamePrefix = folderName.charAt(0).toUpperCase() + folderName.slice(1);
+            document.title = `${classNamePrefix} - ${this.AppConfig.appName}`;
 
             // 6. Instantiate and return the controller
             const formInstance = new ControllerClass(parameters);
