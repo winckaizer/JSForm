@@ -1,6 +1,6 @@
 {
     "name": "jsform-cli",
-    "version": "1.1.7",
+    "version": "1.1.8",
     "description": "JSForm: La arquitectura y productividad de Windows Forms, ahora en la web con Vanilla JS.",
     "main": "bin/index.js",
     "bin": {

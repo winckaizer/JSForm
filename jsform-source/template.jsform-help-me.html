@@ -129,7 +129,7 @@ btnGuardar_click(e) {
 }</code></pre>
 
         <h3>Por Clase (Prefijo cls_)</h3>
-        <p>Ideal para listas o menús donde múltiples elementos comparten la misma acción. Si tienes elementos con la clase <code>menu-item</code>, puedes usar el prefijo <code>cls_</code> seguido del nombre de la clase (puedes usar guiones bajos `_` en lugar de guiones `-` para que sea un nombre de método válido en JS).</p>
+        <p>Ideal para listas o menús donde múltiples elementos comparten la misma acción. Si tienes elementos con la clase <code>menu-item</code>, puedes usar el prefijo <code>cls_</code>. <strong>¡Soporta elementos generados dinámicamente!</strong></p>
         <pre><code class="language-javascript">// HTML: &lt;li class="menu-item" data-id="1"&gt;Opción 1&lt;/li&gt;
 // El framework buscará automáticamente ".menu-item" y ".menu_item"
 cls_menu_item_click(e, elemento) {
@@ -138,7 +138,23 @@ cls_menu_item_click(e, elemento) {
     console.log("Clic en el ítem con ID:", id);
 }</code></pre>
 
-        <h2>4. Ciclo de Vida: Liberar Memoria (onDestroy)</h2>
+        <h2>4. Selección de Elementos (this.query)</h2>
+        <p>JSForm te proporciona un método nativo para seleccionar múltiples elementos dentro de tu vista actual, similar a la función <code>$()</code> de jQuery, pero devolviendo un Array estándar de Javascript.</p>
+        <p>Este método es completamente seguro: solo buscará dentro del DOM de tu vista, por lo que no interferirá con clases iguales en otras vistas (ej. Layouts).</p>
+        <pre><code class="language-javascript">init() {
+    // Busca todos los inputs requeridos en ESTA vista
+    const inputsObligatorios = this.query('input[required]');
+    
+    // Al ser un Array nativo, puedes usar forEach, map, filter...
+    inputsObligatorios.forEach(input => {
+        input.style.border = "1px solid red";
+    });
+
+    // O seleccionar solo el primero
+    const primerItem = this.query('.menu-item')[0];
+}</code></pre>
+
+        <h2>5. Ciclo de Vida: Liberar Memoria (onDestroy)</h2>
         <p>Cuando el usuario cambia de vista, el controlador anterior se descarta. Sin embargo, si creaste <code>setInterval</code> o escuchas eventos globales (<code>window.addEventListener</code>), estos seguirán activos y causarán fugas de memoria.</p>
         <p>Para evitarlo, define el método <code>onDestroy()</code> en tu controlador. JSForm lo llamará automáticamente antes de eliminar la vista.</p>
         <pre><code class="language-javascript">export class MiControlador extends MiDesigner {
@@ -155,7 +171,7 @@ cls_menu_item_click(e, elemento) {
     }
 }</code></pre>
 
-        <h2>5. Componentes del Núcleo</h2>
+        <h2>6. Componentes del Núcleo</h2>
 
         <h3>JSForm.Control</h3>
         <p>Para crear elementos del DOM dinámicamente desde el código.</p>
@@ -290,7 +306,7 @@ const unsubscribe = State.subscribe('tema', (nuevoTema) => {
 // unsubscribe();
 </code></pre>
 
-        <h2>6. Manejo de Páginas de Error</h2>
+        <h2>7. Manejo de Páginas de Error</h2>
         <p>JSForm ahora incluye un sistema robusto para mostrar páginas de error personalizadas cuando una vista no se encuentra o hay un error en la carga. Estas páginas se encuentran en <code>/assets/errors/</code>.</p>
         <pre><code class="language-javascript">// En core/JSForm.Core.js (lógica interna)
 // ...
@@ -311,7 +327,7 @@ try {
 </code></pre>
         <p>Puedes personalizar los archivos <code>400.html</code>, <code>404.html</code>, <code>500.html</code> (y añadir otros) en la carpeta <code>assets/errors/</code> de tu proyecto. Si una página de error específica no se encuentra, se mostrará un mensaje genérico.</p>
         
-        <h2>7. Internacionalización (i18n) con JSForm.i18n</h2>
+        <h2>8. Internacionalización (i18n) con JSForm.i18n</h2>
         <p>JSForm incluye un servicio integrado para manejar múltiples idiomas de forma sencilla y declarativa.</p>
         <ol>
             <li><strong>Crea tus archivos de idioma:</strong> En <code>app/i18n/</code>, crea archivos como <code>es.json</code> y <code>en.json</code>. Puedes anidar claves para una mejor organización.
@@ -349,7 +365,7 @@ MessageBox.show('Saludo', saludo);
             </li>
         </ol>
 
-        <h2>8. Ejemplo Completo: Un Formulario de Login</h2>
+        <h2>9. Ejemplo Completo: Un Formulario de Login</h2>
         <p>Este es un ejemplo de cómo se verían las piezas juntas para un formulario de login.</p>
 
         <h4>1. Crea la carpeta <code>app/forms/Login</code></h4>
@@ -437,7 +453,7 @@ class Program {
 Program.main();
 </code></pre>
 
-        <h2>9. Comandos del CLI</h2>
+        <h2>10. Comandos del CLI</h2>
         <ul>
             <li><code>npm run dev</code>: Inicia el entorno de desarrollo con recarga en caliente.</li>
             <li><code>npm run build</code>: Compila y ofusca tu aplicación para producción. El resultado queda en la
