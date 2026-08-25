@@ -35,7 +35,9 @@ export class LoginController extends LoginDesigner {
 
 *   **CLI Integrada**: Genera proyectos, módulos y componentes con un solo comando.
 *   **Auto-Scaffolding**: Crea la estructura de archivos (`.html`, `.designer.js`, `.controller.js`) automáticamente.
-*   **Auto-Binding de Eventos**: Enlaza eventos del DOM a métodos del controlador por convención de nombres (`btnGuardar_click`).
+*   **Auto-Binding de Eventos**: Enlaza eventos del DOM a métodos del controlador por convención de nombres. 
+    *   **Por ID:** `btnGuardar_click(e)` se enlaza a `<button id="btnGuardar">`.
+    *   **Por Clase:** `cls_menu_item_click(e, el)` se enlaza a `<div class="menu-item">`, enviando el elemento específico como segundo parámetro. Ideal para listas o menús.
 *   **Componentes Reutilizables**: Incluye `MessageBox`, `DataGridView` (adaptador para DataTables.js) y un `HttpClient`.
 *   **Compilación para Producción**: Integrado con Vite para empaquetar, minificar y ofuscar tu aplicación con `npm run build`.
 *   **Soporte para Layouts/Master Pages**: Define una vista principal y carga las vistas hijas dentro de ella.

@@ -119,15 +119,23 @@
         </div>
 
         <h2>3. El Auto-Binding de Eventos</h2>
-        <p>Olvídate de <code>addEventListener</code>. JSForm lo hace por ti. Si tienes un botón
-            <code>&lt;button id="btnGuardar"&gt;&lt;/button&gt;</code>, simplemente crea un método en tu controlador con
-            el nombre <code>btnGuardar_click(event)</code>. ¡Se enlazarán automáticamente!
-        </p>
+        <p>Olvídate de <code>addEventListener</code>. JSForm lo hace por ti a través de dos mecanismos:</p>
+        
+        <h3>Por ID (Por defecto)</h3>
+        <p>Si tienes un botón <code>&lt;button id="btnGuardar"&gt;&lt;/button&gt;</code>, simplemente crea un método en tu controlador con el nombre <code>btnGuardar_click(event)</code>. ¡Se enlazarán automáticamente!</p>
         <pre><code class="language-javascript">// En tu home.controller.js
-// ...
 btnGuardar_click(e) {
     console.log("¡Botón Guardar pulsado!");
-    // 'this' funciona correctamente aquí.
+}</code></pre>
+
+        <h3>Por Clase (Prefijo cls_)</h3>
+        <p>Ideal para listas o menús donde múltiples elementos comparten la misma acción. Si tienes elementos con la clase <code>menu-item</code>, puedes usar el prefijo <code>cls_</code> seguido del nombre de la clase (puedes usar guiones bajos `_` en lugar de guiones `-` para que sea un nombre de método válido en JS).</p>
+        <pre><code class="language-javascript">// HTML: &lt;li class="menu-item" data-id="1"&gt;Opción 1&lt;/li&gt;
+// El framework buscará automáticamente ".menu-item" y ".menu_item"
+cls_menu_item_click(e, elemento) {
+    // 'elemento' es el nodo específico que disparó el evento
+    const id = elemento.getAttribute("data-id");
+    console.log("Clic en el ítem con ID:", id);
 }</code></pre>
 
         <h2>4. Ciclo de Vida: Liberar Memoria (onDestroy)</h2>
