@@ -12,7 +12,7 @@ Este proyecto es un framework SPA (Single Page Application) y una herramienta de
 JSForm rechaza la tendencia de mezclar lógica y vista en un solo archivo (como JSX). En su lugar, promueve una estricta separación de responsabilidades con su arquitectura "Code-Behind":
 
 *   **Vista (`.html`)**: HTML puro y semántico.
-*   **Diseñador (`.designer.js`)**: Un archivo auto-generado que mapea los elementos del DOM a propiedades de clase. ¡Olvídate de `getElementById`!
+*   **Diseñador (`.designer.js`)**: Un archivo auto-generado que mapea los elementos del DOM mediante **Getters en vivo** y un **Proxy inteligente**. ¡Olvídate de `getElementById` y de referencias rotas cuando recargas contenido con `innerHTML`!
 *   **Controlador (`.controller.js`)**: Tu lógica de negocio pura. Hereda del diseñador, lo que permite el acceso a los controles (`this.miBoton`) y el enlazado automático de eventos.
 
 ```javascript
@@ -25,7 +25,8 @@ export class LoginController extends LoginDesigner {
     }
 
     // Se ejecuta automáticamente al hacer click en el elemento con id="btnLogin"
-    btnLogin_click() {
+    // ¡Funciona incluso si el botón fue cargado dinámicamente o reemplazado!
+    btnLogin_click(e) {
         alert("Login pulsado");
     }
 }
@@ -35,9 +36,10 @@ export class LoginController extends LoginDesigner {
 
 *   **CLI Integrada**: Genera proyectos, módulos y componentes con un solo comando.
 *   **Auto-Scaffolding**: Crea la estructura de archivos (`.html`, `.designer.js`, `.controller.js`) automáticamente.
-*   **Auto-Binding de Eventos**: Enlaza eventos del DOM a métodos del controlador por convención de nombres. 
-    *   **Por ID:** `btnGuardar_click(e)` se enlaza a `<button id="btnGuardar">`.
-    *   **Por Clase:** `cls_menu_item_click(e, el)` se enlaza a `<div class="menu-item">`, enviando el elemento específico como segundo parámetro. ¡Soporta elementos generados dinámicamente!
+*   **Propiedades Vivas (Getters + Proxy Híbrido)**: Mapeo automático de elementos por ID con autocompletado en tu editor (IntelliSense) y soporte para elementos inyectados dinámicamente con JavaScript.
+*   **Auto-Binding de Eventos con Delegación**: Enlaza eventos del DOM a métodos del controlador por convención de nombres. Gracias a la delegación de eventos, funcionan siempre, incluso si los elementos se inyectan o reemplazan dinámicamente después.
+    *   **Por ID:** `btnGuardar_click(e, el)` se enlaza a `<button id="btnGuardar">`.
+    *   **Por Clase:** `cls_menu_item_click(e, el)` se enlaza a `<div class="menu-item">`, enviando el elemento específico como segundo parámetro.
 *   **Selector Integrado (`this.query`)**: Selecciona múltiples elementos de forma nativa dentro de tu vista. Funciona como un `$('.clase')` de jQuery pero devuelve un `Array` puro de Vanilla JS, restringido al DOM de tu componente actual.
 *   **Componentes Reutilizables**: Incluye `MessageBox`, `DataGridView` (adaptador para DataTables.js) y un `HttpClient`.
 *   **Compilación para Producción**: Integrado con Vite para empaquetar, minificar y ofuscar tu aplicación con `npm run build`.

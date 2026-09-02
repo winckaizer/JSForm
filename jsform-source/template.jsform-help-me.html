@@ -91,8 +91,7 @@
             <li><strong><code>.html</code> (La Vista):</strong> HTML puro. Aquí defines la estructura visual de tu
                 componente.</li>
             <li><strong><code>.designer.js</code> (El Diseñador):</strong> <strong>¡NO TOCAR!</strong> Este archivo es
-                auto-generado. Mapea cada elemento con un <code>id</code> en tu HTML a una propiedad en la clase del
-                controlador (<code>this.miBoton</code>).</li>
+                auto-generado. Mapea cada elemento con un <code>id</code> en tu HTML mediante <strong>Getters en tiempo real</strong> y un <strong>Proxy</strong> de respaldo (<code>this.miBoton</code>). Si inyectas HTML dinámicamente con <code>innerHTML</code>, ¡las referencias nunca se quedarán rotas ni muertas!</li>
             <li><strong><code>.controller.js</code> (El Controlador):</strong> Aquí vive tu lógica. Hereda del
                 diseñador, por lo que tienes acceso directo a los elementos del DOM a través de <code>this</code>.</li>
         </ul>
@@ -119,13 +118,13 @@
         </div>
 
         <h2>3. El Auto-Binding de Eventos</h2>
-        <p>Olvídate de <code>addEventListener</code>. JSForm lo hace por ti a través de dos mecanismos:</p>
+        <p>Olvídate de <code>addEventListener</code>. JSForm utiliza <strong>Delegación de Eventos</strong> para enlazar automáticamente tus acciones a métodos del controlador, garantizando que funcionen tanto con elementos iniciales como con elementos inyectados dinámicamente en el DOM:</p>
         
         <h3>Por ID (Por defecto)</h3>
-        <p>Si tienes un botón <code>&lt;button id="btnGuardar"&gt;&lt;/button&gt;</code>, simplemente crea un método en tu controlador con el nombre <code>btnGuardar_click(event)</code>. ¡Se enlazarán automáticamente!</p>
+        <p>Si tienes un botón <code>&lt;button id="btnGuardar"&gt;&lt;/button&gt;</code>, simplemente crea un método en tu controlador con el nombre <code>btnGuardar_click(e, elemento)</code>. ¡Se enlazará automáticamente incluso si el botón se renderizó dinámicamente después!</p>
         <pre><code class="language-javascript">// En tu home.controller.js
-btnGuardar_click(e) {
-    console.log("¡Botón Guardar pulsado!");
+btnGuardar_click(e, elemento) {
+    console.log("¡Botón Guardar pulsado!", elemento);
 }</code></pre>
 
         <h3>Por Clase (Prefijo cls_)</h3>
