@@ -47,7 +47,7 @@ export class LoginController extends LoginDesigner {
 *   **Hot Reload Inteligente**: Al refrescar el navegador, restaura la vista actual, incluyendo su layout.
 *   **Internacionalización (i18n)**: Soporte integrado para múltiples idiomas de forma declarativa.
 *   **Gestor de Estado Global**: Un `State` manager simple y reactivo para compartir datos entre componentes.
-*   **Manejo de Errores**: Muestra páginas de error personalizables para códigos HTTP (400, 404, 500).
+*   **Manejo de Errores**: Muestra páginas de error personalizables (400, 404, 500) automáticamente ante fallos de carga o manualmente desde tus controladores con `Application.showError(status)` (con soporte para mantener layouts activos).
 *   **Cero Dependencias (en el cliente)**: El framework en sí es Vanilla JS puro. Los componentes pueden cargar librerías de terceros bajo demanda.
 
 ## 📦 Instalación

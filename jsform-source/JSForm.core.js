@@ -23,6 +23,9 @@ export class Application {
     // MEJORA 4: Flag para detectar el inicio de la aplicación
     static _isStartup = true;
 
+    // Referencia al ID del contenedor de la vista actual
+    static _currentViewTargetId = null;
+
     /**
      * Initializes the application and sets up browser history listening.
      */
@@ -247,6 +250,7 @@ export class Application {
             // Actualizamos nuestra referencia global al nuevo controlador
             if (!isLayout) {
                 this._currentController = formInstance;
+                this._currentViewTargetId = finalTargetId;
             }
             
             return formInstance;
@@ -265,6 +269,30 @@ export class Application {
                 }
             }
             return null;
+        }
+    }
+
+    /**
+     * Muestra una página de error (400, 404, 500, etc.) dentro del contenedor especificado o el contenedor de la vista actual.
+     * @param {number|string} status - Código de error HTTP (ej. 404, 500, 400, 403)
+     * @param {string|HTMLElement} [target=null] - Contenedor o ID del elemento donde inyectar el error
+     * @param {Response|object} [originalResponse=null] - Objeto de respuesta opcional
+     */
+    static async showError(status, target = null, originalResponse = null) {
+        let container = null;
+        if (typeof target === 'string') {
+            container = document.getElementById(target);
+        } else if (target instanceof HTMLElement) {
+            container = target;
+        } else {
+            const targetId = this._currentViewTargetId || this.AppConfig.router.defaultTarget;
+            container = document.getElementById(targetId);
+        }
+
+        if (container) {
+            await this._showErrorPage(container, status, originalResponse);
+        } else {
+            console.error(`[JSForm] ❌ Cannot show error ${status}: Target container not found.`);
         }
     }
 

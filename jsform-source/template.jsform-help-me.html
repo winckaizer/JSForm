@@ -323,8 +323,21 @@ try {
     }
     // ...
 }
+        <p>Puedes personalizar los archivos <code>400.html</code>, <code>404.html</code>, <code>500.html</code> (y añadir otros como <code>403.html</code>) en la carpeta <code>assets/errors/</code> de tu proyecto. Si una página de error específica no se encuentra, se mostrará un mensaje genérico.</p>
+
+        <h3>Llamar páginas de error manualmente desde un Controlador</h3>
+        <p>Si una consulta a la API falla o no encuentras un recurso, puedes mostrar una página de error directamente desde tu código:</p>
+        <pre><code class="language-javascript">import { Application } from '../../core/JSForm.Core.js';
+
+// 1. Mostrar error 404 reemplazando la vista actual automáticamente
+Application.showError(404);
+
+// 2. O mostrar un error 500 / 400
+Application.showError(500);
+
+// 3. O mostrar el error solo dentro de un panel específico (sin romper layouts)
+Application.showError(404, this.miPanelInterno);
 </code></pre>
-        <p>Puedes personalizar los archivos <code>400.html</code>, <code>404.html</code>, <code>500.html</code> (y añadir otros) en la carpeta <code>assets/errors/</code> de tu proyecto. Si una página de error específica no se encuentra, se mostrará un mensaje genérico.</p>
         
         <h2>8. Internacionalización (i18n) con JSForm.i18n</h2>
         <p>JSForm incluye un servicio integrado para manejar múltiples idiomas de forma sencilla y declarativa.</p>
