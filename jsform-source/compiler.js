@@ -82,7 +82,11 @@ export class ${className}Designer {
                     return target[prop];
                 }
                 if (typeof prop === 'string' && prop !== 'then' && !prop.startsWith('_')) {
-                    const el = document.getElementById(prop);
+                    let el = document.getElementById(prop);
+                    if (!el) {
+                        const kebabProp = prop.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
+                        el = document.getElementById(kebabProp);
+                    }
                     if (el) return el;
                 }
                 return undefined;
@@ -127,8 +131,9 @@ export class ${className}Designer {
                     });
                     console.log(\`[JSForm AutoBind Class - Delegated] .\${className} -> \${eventType}\`);
                 } else if (typeof this[method] === 'function') {
+                    const kebabTargetName = targetName.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
                     rootElement.addEventListener(eventType, (e) => {
-                        const targetElement = e.target.closest('#' + targetName);
+                        const targetElement = e.target.closest('#' + targetName + ', #' + kebabTargetName);
                         if (targetElement && (rootElement === document || rootElement.contains(targetElement))) {
                             this[method](e, targetElement);
                         }
@@ -212,7 +217,11 @@ function generateDesigner(htmlPath) {
         jsCode += `                    return target[prop];\n`;
         jsCode += `                }\n`;
         jsCode += `                if (typeof prop === 'string' && prop !== 'then' && !prop.startsWith('_')) {\n`;
-        jsCode += `                    const el = document.getElementById(prop);\n`;
+        jsCode += `                    let el = document.getElementById(prop);\n`;
+        jsCode += `                    if (!el) {\n`;
+        jsCode += `                        const kebabProp = prop.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();\n`;
+        jsCode += `                        el = document.getElementById(kebabProp);\n`;
+        jsCode += `                    }\n`;
         jsCode += `                    if (el) return el;\n`;
         jsCode += `                }\n`;
         jsCode += `                return undefined;\n`;
@@ -259,8 +268,9 @@ function generateDesigner(htmlPath) {
         jsCode += `                    });\n`;
         jsCode += `                    console.log(\`[JSForm AutoBind Class - Delegated] .\${className} -> \${eventType}\`);\n`;
         jsCode += `                } else if (typeof this[method] === 'function') {\n`;
+        jsCode += `                    const kebabTargetName = targetName.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();\n`;
         jsCode += `                    rootElement.addEventListener(eventType, (e) => {\n`;
-        jsCode += `                        const targetElement = e.target.closest('#' + targetName);\n`;
+        jsCode += `                        const targetElement = e.target.closest('#' + targetName + ', #' + kebabTargetName);\n`;
         jsCode += `                        if (targetElement && (rootElement === document || rootElement.contains(targetElement))) {\n`;
         jsCode += `                            this[method](e, targetElement);\n`;
         jsCode += `                        }\n`;
