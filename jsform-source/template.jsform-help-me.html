@@ -323,7 +323,10 @@ try {
     }
     // ...
 }
-        <p>Puedes personalizar los archivos <code>400.html</code>, <code>404.html</code>, <code>500.html</code> (y añadir otros como <code>403.html</code>) en la carpeta <code>assets/errors/</code> de tu proyecto. Si una página de error específica no se encuentra, se mostrará un mensaje genérico.</p>
+        <p>Puedes personalizar los archivos <code>400.html</code>, <code>404.html</code>, <code>500.html</code> y <code>510.html</code> en la carpeta <code>assets/errors/</code> de tu proyecto. Si una página de error específica no se encuentra, se mostrará un mensaje genérico.</p>
+
+        <h3>Error 510 (Fallo al Cargar el Controlador)</h3>
+        <p>Si un controlador contiene un error de sintaxis, una importación rota o lanza una excepción en su <code>constructor()</code> o <code>init()</code>, JSForm ya no redirige silenciosamente al Login. En su lugar, muestra la página <code>510.html</code> con el mensaje exacto y el <strong>Stack Trace</strong> completo para depurar rápidamente.</p>
 
         <h3>Llamar páginas de error manualmente desde un Controlador</h3>
         <p>Si una consulta a la API falla o no encuentras un recurso, puedes mostrar una página de error directamente desde tu código:</p>

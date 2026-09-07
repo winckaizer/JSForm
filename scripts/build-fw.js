@@ -22,7 +22,8 @@ const filesToBundle = [
     'template.jsform-help-me.html',
     '400.html',
     '404.html',
-    '500.html'
+    '500.html',
+    '510.html'
 ];
 
 const binaryExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.ico'];

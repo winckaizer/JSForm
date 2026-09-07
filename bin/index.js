@@ -30,7 +30,8 @@ const fileRouting = {
     'template.jsform-help-me.html': 'jsform-help-me.html',
     '400.html': 'assets/errors/400.html',
     '404.html': 'assets/errors/404.html',
-    '500.html': 'assets/errors/500.html'
+    '500.html': 'assets/errors/500.html',
+    '510.html': 'assets/errors/510.html'
 };
 
 // ==========================================
@@ -225,6 +226,7 @@ else if (command === 'update') {
         '400.html',
         '404.html',
         '500.html',
+        '510.html',
         'template.main.css',
         'template.jsform-help-me.html'
     ];

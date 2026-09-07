@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error 510 - Error de Controlador</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #0d1117;
+            color: #c9d1d9;
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+        .error-card {
+            background-color: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 12px;
+            max-width: 900px;
+            width: 100%;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            border-bottom: 1px solid #30363d;
+            padding-bottom: 20px;
+            margin-bottom: 25px;
+        }
+        .badge {
+            background-color: #f85149;
+            color: #ffffff;
+            font-size: 0.9em;
+            font-weight: 700;
+            padding: 6px 12px;
+            border-radius: 6px;
+            letter-spacing: 0.5px;
+        }
+        h1 {
+            font-size: 1.6em;
+            color: #f0f6fc;
+        }
+        .section {
+            margin-bottom: 20px;
+        }
+        .label {
+            font-size: 0.85em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #8b949e;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        .view-name {
+            font-family: monospace;
+            background-color: #21262d;
+            color: #58a6ff;
+            padding: 8px 12px;
+            border-radius: 6px;
+            display: inline-block;
+            font-size: 1.05em;
+            border: 1px solid #30363d;
+        }
+        .error-message {
+            background-color: rgba(248, 81, 73, 0.1);
+            border: 1px solid rgba(248, 81, 73, 0.4);
+            color: #ff7b72;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: 500;
+            line-height: 1.5;
+            word-break: break-word;
+        }
+        pre.stack-trace {
+            background-color: #090d12;
+            border: 1px solid #30363d;
+            color: #e6edf3;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 0.88em;
+            line-height: 1.6;
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+            max-height: 350px;
+            overflow-y: auto;
+        }
+        .tips {
+            background-color: #1f2937;
+            border-left: 4px solid #3b82f6;
+            padding: 12px 16px;
+            border-radius: 0 6px 6px 0;
+            margin-top: 25px;
+            font-size: 0.9em;
+            color: #9ca3af;
+        }
+        .tips strong { color: #e5e7eb; }
+        .actions {
+            margin-top: 25px;
+            display: flex;
+            gap: 12px;
+        }
+        .btn {
+            background-color: #238636;
+            color: #ffffff;
+            text-decoration: none;
+            padding: 10px 18px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.95em;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            border: none;
+        }
+        .btn:hover { background-color: #2ea043; }
+        .btn-secondary {
+            background-color: #21262d;
+            color: #c9d1d9;
+            border: 1px solid #30363d;
+        }
+        .btn-secondary:hover { background-color: #30363d; }
+    </style>
+</head>
+<body>
+    <div class="error-card">
+        <div class="header">
+            <span class="badge">ERROR 510</span>
+            <h1>Fallo al Cargar el Controlador</h1>
+        </div>
+
+        <div class="section">
+            <div class="label">Vista Solicitada:</div>
+            <div class="view-name" id="jsform-error-view">{{ERROR_VIEW}}</div>
+        </div>
+
+        <div class="section">
+            <div class="label">Mensaje de Error:</div>
+            <div class="error-message" id="jsform-error-message">{{ERROR_MESSAGE}}</div>
+        </div>
+
+        <div class="section">
+            <div class="label">Seguimiento de la Pila (Stack Trace):</div>
+            <pre class="stack-trace" id="jsform-error-stack">{{ERROR_STACK}}</pre>
+        </div>
+
+        <div class="tips">
+            <strong>💡 Sugerencias para depurar:</strong>
+            <ul style="margin-left: 20px; margin-top: 6px;">
+                <li>Revisa posibles errores de sintaxis o importaciones en tu archivo <code>.controller.js</code>.</li>
+                <li>Verifica que los métodos <code>constructor()</code> o <code>init()</code> no lancen excepciones no controladas.</li>
+                <li>Comprueba que el nombre de la clase coincida con la convención (ej: <code>NombreController</code>).</li>
+            </ul>
+        </div>
+
+        <div class="actions">
+            <button class="btn" onclick="window.location.reload();">🔄 Reintentar / Recargar</button>
+            <a href="/" class="btn btn-secondary">🏠 Ir a Página de Inicio</a>
+        </div>
+    </div>
+</body>
+</html>
+

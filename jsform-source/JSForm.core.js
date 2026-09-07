@@ -125,7 +125,17 @@ export class Application {
                         return controller;
                     }
                 } catch (e) {
-                    console.warn(`[JSForm] ⚠️ No se pudo restaurar la sesión para '${requestedView}' (Error: ${e.message}). Se cargará la vista por defecto.`);
+                    console.error(`[JSForm] ❌ Error cargando controlador para '${requestedView}':`, e);
+                    const target = targetId || this.AppConfig.router.defaultTarget;
+                    const rootContainer = document.getElementById(target);
+                    if (rootContainer) {
+                        await this._showErrorPage(rootContainer, 510, null, {
+                            view: requestedView,
+                            error: e,
+                            modulePath: `/app/forms/${folderName}/${fileName}.controller.js`
+                        });
+                    }
+                    return null;
                 }
             }
         }
@@ -257,15 +267,18 @@ export class Application {
             
         } catch (error) {
             // MEJORA: Manejo de errores centralizado
-            console.error(`[JSForm] ❌ Failed to load '${viewName}':`, error.message);
+            console.error(`[JSForm] ❌ Failed to load '${viewName}':`, error);
 
             if (rootContainer) {
                 // Si el error tiene un objeto 'response', es un error HTTP (ej. 404, 500)
                 if (error.response) {
                     await this._showErrorPage(rootContainer, error.response.status, error.response);
                 } else {
-                    // Si no, es un error de red o de otro tipo. Mostramos un error genérico (ej. 500).
-                    await this._showErrorPage(rootContainer, 500);
+                    // Error en el controlador o código JS: Mostramos 510 con detalles
+                    await this._showErrorPage(rootContainer, 510, null, {
+                        view: viewName,
+                        error: error
+                    });
                 }
             }
             return null;
@@ -273,12 +286,13 @@ export class Application {
     }
 
     /**
-     * Muestra una página de error (400, 404, 500, etc.) dentro del contenedor especificado o el contenedor de la vista actual.
-     * @param {number|string} status - Código de error HTTP (ej. 404, 500, 400, 403)
+     * Muestra una página de error (400, 404, 500, 510, etc.) dentro del contenedor especificado o el contenedor de la vista actual.
+     * @param {number|string} status - Código de error HTTP (ej. 404, 500, 510, 400, 403)
      * @param {string|HTMLElement} [target=null] - Contenedor o ID del elemento donde inyectar el error
      * @param {Response|object} [originalResponse=null] - Objeto de respuesta opcional
+     * @param {object} [errorDetails=null] - Detalles adicionales del error ({ view, error, message, modulePath })
      */
-    static async showError(status, target = null, originalResponse = null) {
+    static async showError(status, target = null, originalResponse = null, errorDetails = null) {
         let container = null;
         if (typeof target === 'string') {
             container = document.getElementById(target);
@@ -290,33 +304,63 @@ export class Application {
         }
 
         if (container) {
-            await this._showErrorPage(container, status, originalResponse);
+            await this._showErrorPage(container, status, originalResponse, errorDetails);
         } else {
             console.error(`[JSForm] ❌ Cannot show error ${status}: Target container not found.`);
         }
     }
 
     /**
-     * MEJORA: Nuevo método privado para mostrar páginas de error.
-     * Intenta cargar una página de error personalizada (ej. /assets/errors/404.html).
+     * MEJORA: Método para mostrar páginas de error.
+     * Intenta cargar una página de error personalizada (ej. /assets/errors/404.html, 510.html).
+     * Inyecta dinámicamente los detalles del error (mensaje, stack trace, vista) si existen.
      * Si no la encuentra, muestra un mensaje de error genérico.
      * @private
      */
-    static async _showErrorPage(container, status, originalResponse = null) {
+    static async _showErrorPage(container, status, originalResponse = null, errorDetails = null) {
         const errorPagePath = `${this.AppConfig.router.basePath}/assets/errors/${status}.html`;
         try {
             const errorResponse = await fetch(errorPagePath);
             if (errorResponse.ok) {
-                container.innerHTML = await errorResponse.text();
+                let html = await errorResponse.text();
+
+                // Inyectar detalles dinámicos si existen en el template
+                if (errorDetails) {
+                    const errorMsg = errorDetails.error?.message || errorDetails.message || 'Error desconocido';
+                    const errorStack = errorDetails.error?.stack || '';
+                    const errorView = errorDetails.view || '';
+                    const errorFile = errorDetails.modulePath || '';
+
+                    html = html.replace(/{{ERROR_MESSAGE}}/g, errorMsg)
+                               .replace(/{{ERROR_STACK}}/g, errorStack)
+                               .replace(/{{ERROR_VIEW}}/g, errorView)
+                               .replace(/{{ERROR_FILE}}/g, errorFile);
+                }
+
+                container.innerHTML = html;
+
+                // Actualizar elementos específicos si existen en el DOM
+                if (errorDetails) {
+                    const msgEl = container.querySelector('#jsform-error-message');
+                    if (msgEl) msgEl.textContent = errorDetails.error?.message || errorDetails.message || '';
+                    const stackEl = container.querySelector('#jsform-error-stack');
+                    if (stackEl) stackEl.textContent = errorDetails.error?.stack || '';
+                    const viewEl = container.querySelector('#jsform-error-view');
+                    if (viewEl) viewEl.textContent = errorDetails.view || '';
+                }
             } else {
                 throw new Error(`Custom error page for status ${status} not found.`);
             }
         } catch (e) {
             console.warn(`[JSForm] ⚠️  No se encontró una página de error personalizada para el estado ${status}. Mostrando mensaje por defecto.`);
-            container.innerHTML = `<div style="padding: 20px; text-align: center; color: #333;">
-                <h1>Error ${status}</h1>
-                <p>${originalResponse ? originalResponse.statusText : 'No se pudo cargar el recurso.'}</p>
-                <p>Además, no se encontró una página de error personalizada en <code>${errorPagePath}</code>.</p>
+            const errorMsg = errorDetails?.error?.message || (originalResponse ? originalResponse.statusText : 'No se pudo cargar el recurso.');
+            const errorStack = errorDetails?.error?.stack ? `<pre style="text-align:left; background:#161b22; color:#ff7b72; padding:15px; border-radius:6px; overflow:auto; font-size:13px; font-family:monospace; margin-top:15px;">${errorDetails.error.stack}</pre>` : '';
+
+            container.innerHTML = `<div style="padding: 40px 20px; text-align: center; color: #333; font-family: sans-serif; max-width: 800px; margin: 0 auto;">
+                <h1 style="color: #e63946; font-size: 2em; margin-bottom: 10px;">Error ${status}</h1>
+                <p style="font-size: 1.1em; color: #555;"><strong>${errorMsg}</strong></p>
+                ${errorStack}
+                <p style="margin-top: 25px;"><a href="/" style="color: #007bff; text-decoration: none; font-weight: bold;">← Volver al inicio</a></p>
             </div>`;
         }
     }
