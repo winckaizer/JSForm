@@ -207,14 +207,12 @@ async btnBorrar_click() {
 </code></pre>
 
         <h3>JSForm.DataGridView</h3>
-        <p>Un adaptador para la potente librería DataTables.js. Carga los scripts necesarios bajo demanda.</p>
+        <p>Componente nativo de tabla de datos en Vanilla JS (cero dependencias externas). Ofrece paginación automática, ordenación por columnas, renderizado personalizado y soporte para paginación remota conectada a tu Backend.</p>
         <ol>
-            <li><strong>En tu HTML:</strong> Añade una tabla vacía:
-                <code>&lt;table id="gridUsuarios"&gt;&lt;/table&gt;</code>.
+            <li><strong>En tu HTML:</strong> Añade un contenedor simple:
+                <code>&lt;div id="gridUsuarios"&gt;&lt;/div&gt;</code>.
             </li>
-            <li><strong>En <code>main.css</code>:</strong> Descomenta la línea <code>@import</code> del CSS de
-                DataTables.</li>
-            <li><strong>En tu Controlador:</strong></li>
+            <li><strong>En tu Controlador (Modo Local o Backend):</strong></li>
         </ol>
         <pre><code class="language-javascript">import { DataGridView } from '../../core/JSForm.DataGridView.js';
 
@@ -226,19 +224,50 @@ export class MiControlador extends MiDesigner {
     }
 
     async init() {
-        const datos = [{ id: 1, nombre: 'Ana' }, { id: 2, nombre: 'Luis' }];
-        
-        this.grid = await DataGridView.create('gridUsuarios', {
-            dataSource: datos,
+        this.grid = new DataGridView('gridUsuarios', {
             columns: [
-                { data: 'id', title: 'ID' },
-                { data: 'nombre', title: 'Nombre' }
-            ]
+                { field: 'id', header: 'ID', width: '70px', align: 'center' },
+                { field: 'nombre', header: 'Nombre' },
+                { field: 'email', header: 'Correo Electrónico' },
+                { 
+                    field: 'activo', 
+                    header: 'Estado',
+                    render: (val, row) => `<span class="badge ${val ? 'badge-success' : 'badge-danger'}">${val ? 'Activo' : 'Inactivo'}</span>` 
+                },
+                {
+                    header: 'Acciones',
+                    width: '100px',
+                    align: 'center',
+                    render: (val, row) => `<button class="btn-sm" data-id="${row.id}">Editar</button>`
+                }
+            ],
+            pageSize: 10,
+            height: '350px', // Altura fija con scroll vertical o 'auto'
+            striped: true,
+            hover: true,
+            // 1. MODO LOCAL: Pasas un array directamente
+            dataSource: [{ id: 1, nombre: 'Ana', email: 'ana@mail.com', activo: true }],
+            
+            // 2. MODO BACKEND: Paginación remota
+            // serverSide: true,
+            // onPageChange: async (page, pageSize) => {
+            //     const res = await fetch(`/api/usuarios?page=${page}&limit=${pageSize}`);
+            //     const data = await res.json();
+            //     this.grid.setRemoteData({
+            //         data: data.items,
+            //         total: data.totalRegistros,
+            //         page: page,
+            //         pageSize: pageSize
+            //     });
+            // },
+            onRowClick: (row, index, e) => {
+                console.log("Fila seleccionada:", row);
+            }
         });
     }
 
     onDestroy() {
-        // ¡Muy importante para liberar memoria!
+        // ¡Muy importante para liberar memoria en una SPA!
         if (this.grid) {
             this.grid.destroy();
         }

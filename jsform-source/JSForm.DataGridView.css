@@ -1,0 +1,204 @@
+/* ==========================================================================
+   JSForm.DataGridView - Estilos Nativos
+   ========================================================================== */
+
+:root {
+    --jsform-grid-bg: #ffffff;
+    --jsform-grid-border-color: #e5e7eb;
+    --jsform-grid-header-bg: #f9fafb;
+    --jsform-grid-header-color: #374151;
+    --jsform-grid-row-even-bg: #fdfdfd;
+    --jsform-grid-row-odd-bg: #f9fafb;
+    --jsform-grid-row-hover-bg: #f3f4f6;
+    --jsform-grid-row-selected-bg: #e0f2fe;
+    --jsform-grid-text-color: #1f2937;
+    --jsform-grid-text-muted: #6b7280;
+    --jsform-grid-primary: #2563eb;
+    --jsform-grid-primary-hover: #1d4ed8;
+    --jsform-grid-radius: 8px;
+}
+
+/* Contenedor Principal */
+.jsform-grid-container {
+    width: 100%;
+    background-color: var(--jsform-grid-bg);
+    border: 1px solid var(--jsform-grid-border-color);
+    border-radius: var(--jsform-grid-radius);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    font-family: inherit;
+    color: var(--jsform-grid-text-color);
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+.jsform-grid-container * {
+    box-sizing: border-box;
+}
+
+/* Barra de Herramientas Superior */
+.jsform-grid-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background-color: var(--jsform-grid-header-bg);
+    border-bottom: 1px solid var(--jsform-grid-border-color);
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.jsform-grid-pagesize-select {
+    padding: 6px 10px;
+    border: 1px solid var(--jsform-grid-border-color);
+    border-radius: 6px;
+    background-color: var(--jsform-grid-bg);
+    color: var(--jsform-grid-text-color);
+    font-size: 0.9em;
+    outline: none;
+    cursor: pointer;
+}
+
+.jsform-grid-search-input {
+    padding: 6px 12px;
+    border: 1px solid var(--jsform-grid-border-color);
+    border-radius: 6px;
+    background-color: var(--jsform-grid-bg);
+    color: var(--jsform-grid-text-color);
+    font-size: 0.9em;
+    outline: none;
+    width: 200px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.jsform-grid-search-input:focus {
+    border-color: var(--jsform-grid-primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+/* Contenedor con Scroll de la Tabla */
+.jsform-grid-body-wrapper {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: auto;
+    position: relative;
+}
+
+/* Tabla */
+.jsform-grid-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 0.92em;
+}
+
+.jsform-grid-table th {
+    background-color: var(--jsform-grid-header-bg);
+    color: var(--jsform-grid-header-color);
+    font-weight: 600;
+    padding: 12px 16px;
+    border-bottom: 2px solid var(--jsform-grid-border-color);
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    user-select: none;
+}
+
+.jsform-grid-table th.sortable {
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+
+.jsform-grid-table th.sortable:hover {
+    background-color: #eaeef3;
+}
+
+.jsform-grid-sort-icon {
+    display: inline-block;
+    margin-left: 6px;
+    font-size: 0.8em;
+    color: var(--jsform-grid-text-muted);
+}
+
+.jsform-grid-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--jsform-grid-border-color);
+    color: var(--jsform-grid-text-color);
+    vertical-align: middle;
+}
+
+/* Filas Cebra y Hover */
+.jsform-grid-striped tbody tr:nth-child(even) {
+    background-color: var(--jsform-grid-row-odd-bg);
+}
+
+.jsform-grid-hover tbody tr:hover {
+    background-color: var(--jsform-grid-row-hover-bg);
+    cursor: pointer;
+}
+
+.jsform-grid-empty {
+    text-align: center;
+    padding: 30px !important;
+    color: var(--jsform-grid-text-muted);
+    font-style: italic;
+}
+
+/* Barra de Paginación y Estado Inferior */
+.jsform-grid-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background-color: var(--jsform-grid-header-bg);
+    border-top: 1px solid var(--jsform-grid-border-color);
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.jsform-grid-info {
+    font-size: 0.88em;
+    color: var(--jsform-grid-text-muted);
+}
+
+.jsform-grid-pagination {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.jsform-grid-page-btn {
+    border: 1px solid var(--jsform-grid-border-color);
+    background-color: var(--jsform-grid-bg);
+    color: var(--jsform-grid-text-color);
+    padding: 5px 10px;
+    font-size: 0.88em;
+    font-weight: 500;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+    min-width: 32px;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.jsform-grid-page-btn:hover:not(:disabled) {
+    background-color: var(--jsform-grid-row-hover-bg);
+    border-color: #cbd5e1;
+}
+
+.jsform-grid-page-btn.active {
+    background-color: var(--jsform-grid-primary);
+    color: #ffffff;
+    border-color: var(--jsform-grid-primary);
+}
+
+.jsform-grid-page-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+

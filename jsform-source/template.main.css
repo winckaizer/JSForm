@@ -4,9 +4,8 @@
 /* Estilos base para MessageBox (se puede sobreescribir en custom-styles.css) */
 @import url('./JSForm.MessageBox.css');
 
-/* NOTA: Los estilos de DataTables.js para el componente DataGridView
-   se cargan dinámicamente desde el propio componente. Ya no es necesario
-   descomentar ninguna línea aquí. */
+/* Estilos base para DataGridView */
+@import url('./JSForm.DataGridView.css');
 
 /* ==========================================================================
    Tus estilos personalizados - ¡Este archivo NO se borrará al actualizar!

@@ -41,7 +41,7 @@ export class LoginController extends LoginDesigner {
     *   **Por ID:** `btnGuardar_click(e, el)` se enlaza a `<button id="btnGuardar">`.
     *   **Por Clase:** `cls_menu_item_click(e, el)` se enlaza a `<div class="menu-item">`, enviando el elemento específico como segundo parámetro.
 *   **Selector Integrado (`this.query`)**: Selecciona múltiples elementos de forma nativa dentro de tu vista. Funciona como un `$('.clase')` de jQuery pero devuelve un `Array` puro de Vanilla JS, restringido al DOM de tu componente actual.
-*   **Componentes Reutilizables**: Incluye `MessageBox`, `DataGridView` (adaptador para DataTables.js) y un `HttpClient`.
+*   **Componentes Reutilizables**: Incluye `MessageBox`, `DataGridView` (tabla de datos nativa con paginación local y remota) y un `HttpClient`.
 *   **Compilación para Producción**: Integrado con Vite para empaquetar, minificar y ofuscar tu aplicación con `npm run build`.
 *   **Soporte para Layouts/Master Pages**: Define una vista principal y carga las vistas hijas dentro de ella.
 *   **Hot Reload Inteligente**: Al refrescar el navegador, restaura la vista actual, incluyendo su layout.
@@ -125,25 +125,45 @@ async btnBorrar_click() {
 
 ### DataGridView
 
-Un adaptador para la potente librería `DataTables.js` que carga los scripts necesarios bajo demanda.
+Componente nativo de tabla de datos en Vanilla JS (cero dependencias externas). Soporta columnas configurables, renderers personalizados, ordenación, altura fija con scroll, paginación en memoria o paginación remota conectada a tu Backend.
 
 ```javascript
 import { DataGridView } from '../../core/JSForm.DataGridView.js';
 
 // En tu controlador...
 async init() {
-    const datos = [{ id: 1, nombre: 'Ana' }, { id: 2, nombre: 'Luis' }];
-    
-    this.grid = await DataGridView.create('gridUsuarios', {
-        dataSource: datos,
+    this.grid = new DataGridView('gridUsuarios', {
         columns: [
-            { data: 'id', title: 'ID' },
-            { data: 'nombre', title: 'Nombre' }
-        ]
+            { field: 'id', header: 'ID', width: '70px', align: 'center' },
+            { field: 'nombre', header: 'Nombre Completo' },
+            { field: 'email', header: 'Correo Electrónico' },
+            { 
+                field: 'activo', 
+                header: 'Estado',
+                render: (val, row) => `<span class="badge ${val ? 'activo' : 'inactivo'}">${val ? 'Activo' : 'Inactivo'}</span>` 
+            },
+            {
+                header: 'Acciones',
+                width: '100px',
+                render: (val, row) => `<button class="btn-sm" data-id="${row.id}">Editar</button>`
+            }
+        ],
+        pageSize: 10,
+        height: '400px', // Altura con scroll o 'auto'
+        striped: true,
+        hover: true,
+        // Modo local (en memoria):
+        dataSource: [{ id: 1, nombre: 'Ana', email: 'ana@mail.com', activo: true }],
+        // O modo Backend (remoto):
+        // serverSide: true,
+        // onPageChange: async (page, pageSize) => { await this.cargarUsuarios(page, pageSize); },
+        onRowClick: (row, index, e) => {
+            console.log('Fila seleccionada:', row);
+        }
     });
 }
 
-// ¡No olvides destruir la instancia para liberar memoria!
+// ¡No olvides destruir la instancia para liberar memoria en la SPA!
 onDestroy() {
     if (this.grid) {
         this.grid.destroy();
@@ -237,6 +257,10 @@ El CLI no usa los archivos de `jsform-source/` directamente. En su lugar, se emp
 1.  Realiza tus cambios en los archivos dentro de `jsform-source/`.
 2.  Ejecuta `npm run build-fw` para actualizar el paquete de archivos.
 3.  Publica en NPM con `npm publish`. El script `prepublishOnly` se encargará de ejecutar el build automáticamente.
+
+## 📋 Historial de Cambios
+
+Para consultar el registro detallado de todas las versiones, características nuevas y correcciones, revisa el archivo [CHANGELOG.md](./CHANGELOG.md).
 
 ## 🤝 Contribuciones
 

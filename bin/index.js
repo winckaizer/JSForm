@@ -24,6 +24,7 @@ const fileRouting = {
     'jsform.messagebox.js': 'core/JSForm.MessageBox.js',
     'jsform.messagebox.css': 'assets/css/JSForm.MessageBox.css',
     'jsform.datagridview.js': 'core/JSForm.DataGridView.js',
+    'jsform.datagridview.css': 'assets/css/JSForm.DataGridView.css',
     'jsform.httpclient.js': 'core/JSForm.HttpClient.js',
     'template.index.html': 'index.html',
     'template.main.css': 'assets/css/main.css',
@@ -220,8 +221,9 @@ else if (command === 'update') {
         'jsform.control.js',
         'jsform.messagebox.js', // Añadido para futuras actualizaciones
         'jsform.messagebox.css', // Añadido para futuras actualizaciones
-        'jsform.datagridview.js', // Añadido para futuras actualizaciones
-        'jsform.httpclient.js', // Añadido para futuras actualizaciones
+        'jsform.datagridview.js',
+        'jsform.datagridview.css',
+        'jsform.httpclient.js',
         'jsform.i18n.js', // Añadido para la funcionalidad de i18n
         '400.html',
         '404.html',

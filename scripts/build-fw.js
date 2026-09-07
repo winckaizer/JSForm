@@ -16,6 +16,7 @@ const filesToBundle = [
     'JSForm.MessageBox.js',
     'JSForm.MessageBox.css',
     'JSForm.DataGridView.js',
+    'JSForm.DataGridView.css',
     'JSForm.HttpClient.js',
     'template.index.html',
     'template.main.css',
