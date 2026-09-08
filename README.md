@@ -125,7 +125,7 @@ async btnBorrar_click() {
 
 ### DataGridView
 
-Componente nativo de tabla de datos en Vanilla JS (cero dependencias externas). Soporta columnas configurables, renderers personalizados, ordenación, altura fija con scroll, paginación en memoria o paginación remota conectada a tu Backend.
+Componente nativo de tabla de datos en Vanilla JS (cero dependencias externas). Soporta columnas configurables, renderers personalizados, ordenación, altura fija con scroll, buscador universal (con soporte `searchOnEnter`), paginación en memoria o paginación remota conectada a tu Backend.
 
 ```javascript
 import { DataGridView } from '../../core/JSForm.DataGridView.js';
@@ -152,11 +152,16 @@ async init() {
         height: '400px', // Altura con scroll o 'auto'
         striped: true,
         hover: true,
+        // Configuración de Búsqueda:
+        searching: true,
+        searchOnEnter: true, // true para buscar solo al presionar 'Enter' (evita saturar el servidor)
+        
         // Modo local (en memoria):
         dataSource: [{ id: 1, nombre: 'Ana', email: 'ana@mail.com', activo: true }],
+        
         // O modo Backend (remoto):
         // serverSide: true,
-        // onPageChange: async (page, pageSize) => { await this.cargarUsuarios(page, pageSize); },
+        // onPageChange: async (page, pageSize, query) => { await this.cargarUsuarios(page, pageSize, query); },
         onRowClick: (row, index, e) => {
             console.log('Fila seleccionada:', row);
         }

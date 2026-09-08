@@ -243,15 +243,18 @@ export class MiControlador extends MiDesigner {
             ],
             pageSize: 10,
             height: '350px', // Altura fija con scroll vertical o 'auto'
-            striped: true,
-            hover: true,
+            // Configuración del Buscador:
+            searching: true,
+            searchPlaceholder: 'Buscar en todas las columnas...',
+            searchOnEnter: true, // Si es true, busca solo al presionar 'Enter' (evita saturar el servidor)
+            
             // 1. MODO LOCAL: Pasas un array directamente
             dataSource: [{ id: 1, nombre: 'Ana', email: 'ana@mail.com', activo: true }],
             
-            // 2. MODO BACKEND: Paginación remota
+            // 2. MODO BACKEND: Paginación y búsqueda remota
             // serverSide: true,
-            // onPageChange: async (page, pageSize) => {
-            //     const res = await fetch(`/api/usuarios?page=${page}&limit=${pageSize}`);
+            // onPageChange: async (page, pageSize, query) => {
+            //     const res = await fetch(`/api/usuarios?page=${page}&limit=${pageSize}&search=${encodeURIComponent(query)}`);
             //     const data = await res.json();
             //     this.grid.setRemoteData({
             //         data: data.items,

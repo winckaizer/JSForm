@@ -61,21 +61,49 @@
     cursor: pointer;
 }
 
+.jsform-grid-search-wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
 .jsform-grid-search-input {
-    padding: 6px 12px;
+    padding: 6px 30px 6px 12px;
     border: 1px solid var(--jsform-grid-border-color);
     border-radius: 6px;
     background-color: var(--jsform-grid-bg);
     color: var(--jsform-grid-text-color);
     font-size: 0.9em;
     outline: none;
-    width: 200px;
+    width: 240px;
     transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .jsform-grid-search-input:focus {
     border-color: var(--jsform-grid-primary);
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.jsform-grid-search-clear {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    color: var(--jsform-grid-text-muted);
+    font-size: 11px;
+    cursor: pointer;
+    padding: 3px 6px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.jsform-grid-search-clear:hover {
+    color: var(--jsform-grid-text-color);
+    background-color: rgba(0, 0, 0, 0.08);
 }
 
 /* Contenedor con Scroll de la Tabla */

@@ -5,6 +5,22 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 
 ---
 
+## [1.3.2] - 2026-09-08
+
+### 🚀 Novedades en DataGridView
+* **Buscador Universal Multicolumna (Local y Backend):**
+  * **Modo Local:** Filtra instantáneamente en tiempo real buscando coincidencias en todas las columnas de la tabla (tanto en valores crudos como en celdas renderizadas).
+  * **Modo Backend / Remoto:** Envía el término de búsqueda a tu API a través de `onPageChange(page, pageSize, query)` o `onSearch(query, page, pageSize)`.
+* **Opción `searchOnEnter: true` (Evita saturación del servidor):**
+  * Permite configurar el buscador para que solo ejecute la consulta al presionar la tecla **Enter** (o limpiar la búsqueda), ideal para bases de datos pesadas o endpoints con millones de registros.
+* **Control de Debounce Configurable (`searchDebounce`):**
+  * En modo automático, espera el tiempo configurado (por defecto 300ms) a que el usuario termine de escribir antes de enviar la petición al servidor.
+* **Métodos Programáticos y UI Mejorada:**
+  * Métodos `grid.search('query')`, `grid.getSearchTerm()` y `grid.clearSearch()`.
+  * Botón de borrado rápido (`✕`) integrado dentro del input de búsqueda.
+
+---
+
 ## [1.3.0] - 2026-09-07
 
 ### 🚀 Novedades y Características Principales

@@ -3,7 +3,7 @@
 /**
  * JSForm.DataGridView
  * Componente de tabla de datos nativo en Vanilla JS.
- * Inspirado en el DataGridView de Windows Forms con soporte para paginación local y remota (backend).
+ * Inspirado en el DataGridView de Windows Forms con soporte para paginación y búsqueda local o remota (backend).
  */
 export class DataGridView {
     /**
@@ -18,10 +18,14 @@ export class DataGridView {
      * @param {boolean} [options.striped=true] - Filas intercaladas estilo cebra.
      * @param {boolean} [options.hover=true] - Efecto hover sobre las filas.
      * @param {boolean} [options.pagination=true] - Habilitar barra de paginación inferior.
-     * @param {boolean} [options.searching=false] - Habilitar buscador rápido en la cabecera.
-     * @param {boolean} [options.serverSide=false] - Habilitar modo backend (dispara onPageChange al cambiar de página).
+     * @param {boolean} [options.searching=true] - Habilitar buscador rápido en la cabecera.
+     * @param {string} [options.searchPlaceholder='Buscar en todas las columnas...'] - Placeholder del cuadro de búsqueda.
+     * @param {boolean} [options.searchOnEnter=false] - Si es true, busca solo al presionar 'Enter'. Si es false, busca automáticamente con debounce.
+     * @param {number} [options.searchDebounce=300] - Tiempo de espera en milisegundos para búsqueda automática en servidor.
+     * @param {boolean} [options.serverSide=false] - Habilitar modo backend (dispara onPageChange / onSearch).
      * @param {string} [options.emptyMessage='No hay registros disponibles'] - Mensaje cuando la tabla esté vacía.
-     * @param {function} [options.onPageChange] - Callback al cambiar página/tamaño en modo servidor: (page, pageSize) => {}
+     * @param {function} [options.onPageChange] - Callback al cambiar página/tamaño en modo servidor: (page, pageSize, query) => {}
+     * @param {function} [options.onSearch] - Callback específico al realizar búsquedas en modo servidor: (query, page, pageSize) => {}
      * @param {function} [options.onRowClick] - Callback al hacer clic en una fila: (row, index, event) => {}
      * @param {function} [options.onSort] - Callback al ordenar columnas: (field, direction) => {}
      */
@@ -42,10 +46,14 @@ export class DataGridView {
             striped: true,
             hover: true,
             pagination: true,
-            searching: false,
+            searching: true,
+            searchPlaceholder: 'Buscar en todas las columnas...',
+            searchOnEnter: false,
+            searchDebounce: 300,
             serverSide: false,
             emptyMessage: 'No hay registros disponibles',
             onPageChange: null,
+            onSearch: null,
             onRowClick: null,
             onSort: null,
             ...options
@@ -60,6 +68,7 @@ export class DataGridView {
         this.sortColumn = null;
         this.sortDirection = 'asc'; // 'asc' | 'desc'
         this.searchTerm = '';
+        this.debounceTimer = null;
         this.container = null;
 
         // Renderizado inicial
@@ -134,6 +143,7 @@ export class DataGridView {
         // Selector de tamaño de página
         if (this.options.pageSizeOptions && Array.isArray(this.options.pageSizeOptions)) {
             const lengthDiv = document.createElement('div');
+            lengthDiv.className = 'jsform-grid-length-wrapper';
             lengthDiv.innerHTML = `
                 <label style="font-size: 0.9em; color: var(--jsform-grid-text-muted); display: flex; align-items: center; gap: 6px;">
                     Mostrar
@@ -150,19 +160,135 @@ export class DataGridView {
             this.toolbarEl.appendChild(lengthDiv);
         }
 
-        // Buscador rápido (para modo local)
+        // Buscador
         if (this.options.searching) {
             const searchDiv = document.createElement('div');
+            searchDiv.className = 'jsform-grid-search-wrapper';
             searchDiv.innerHTML = `
-                <input type="text" class="jsform-grid-search-input" placeholder="Buscar..." value="${this.searchTerm}">
+                <input type="text" class="jsform-grid-search-input" placeholder="${this.options.searchPlaceholder}" value="${this.searchTerm}">
+                <button type="button" class="jsform-grid-search-clear" title="Limpiar búsqueda" style="display: ${this.searchTerm ? 'inline-flex' : 'none'};">✕</button>
             `;
-            const inputEl = searchDiv.querySelector('input');
-            inputEl.addEventListener('input', (e) => {
-                this.searchTerm = e.target.value.toLowerCase().trim();
-                this.applyClientSearch();
+
+            this.searchInputEl = searchDiv.querySelector('.jsform-grid-search-input');
+            this.searchClearBtn = searchDiv.querySelector('.jsform-grid-search-clear');
+
+            // Evento input (escritura)
+            this.searchInputEl.addEventListener('input', (e) => {
+                const value = e.target.value;
+                this.searchClearBtn.style.display = value.trim() ? 'inline-flex' : 'none';
+
+                if (!this.options.searchOnEnter) {
+                    if (this.debounceTimer) clearTimeout(this.debounceTimer);
+                    this.debounceTimer = setTimeout(() => {
+                        this.applySearch(value);
+                    }, this.options.searchDebounce || 300);
+                }
             });
+
+            // Evento keydown (Enter)
+            this.searchInputEl.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (this.debounceTimer) clearTimeout(this.debounceTimer);
+                    this.applySearch(this.searchInputEl.value);
+                }
+            });
+
+            // Botón Limpiar (✕)
+            this.searchClearBtn.addEventListener('click', () => {
+                this.clearSearch();
+            });
+
             this.toolbarEl.appendChild(searchDiv);
         }
+    }
+
+    /**
+     * Aplica la búsqueda tanto en modo local como en modo backend.
+     * @param {string} query - Término a buscar.
+     */
+    async applySearch(query) {
+        this.searchTerm = (query || '').toLowerCase().trim();
+        this.currentPage = 1;
+
+        if (this.options.serverSide) {
+            if (typeof this.options.onSearch === 'function') {
+                await this.options.onSearch(this.searchTerm, 1, this.pageSize);
+            } else if (typeof this.options.onPageChange === 'function') {
+                await this.options.onPageChange(1, this.pageSize, this.searchTerm);
+            }
+        } else {
+            this.applyClientSearch();
+            this.render();
+        }
+    }
+
+    /**
+     * Filtra los datos en memoria en todas las columnas (modo local).
+     */
+    applyClientSearch() {
+        if (!this.searchTerm) {
+            this.filteredData = [...this.data];
+        } else {
+            this.filteredData = this.data.filter((row, globalIndex) => {
+                return this.options.columns.some(col => {
+                    if (!col.field && !col.render) return false;
+
+                    // 1. Buscar en el valor crudo del objeto
+                    const rawVal = col.field ? row[col.field] : undefined;
+                    if (rawVal !== undefined && rawVal !== null && String(rawVal).toLowerCase().includes(this.searchTerm)) {
+                        return true;
+                    }
+
+                    // 2. Buscar en el contenido renderizado si existe función render
+                    if (typeof col.render === 'function') {
+                        const rendered = col.render(rawVal, row, globalIndex);
+                        if (typeof rendered === 'string' && rendered.toLowerCase().includes(this.searchTerm)) {
+                            return true;
+                        }
+                    }
+
+                    return false;
+                });
+            });
+        }
+
+        this.applyClientSort();
+    }
+
+    /**
+     * Realiza una búsqueda programática.
+     * @param {string} term - Texto a buscar.
+     */
+    async search(term) {
+        if (this.searchInputEl) {
+            this.searchInputEl.value = term || '';
+            if (this.searchClearBtn) {
+                this.searchClearBtn.style.display = term ? 'inline-flex' : 'none';
+            }
+        }
+        await this.applySearch(term);
+    }
+
+    /**
+     * Limpia el buscador y restaura la vista.
+     */
+    async clearSearch() {
+        if (this.searchInputEl) {
+            this.searchInputEl.value = '';
+        }
+        if (this.searchClearBtn) {
+            this.searchClearBtn.style.display = 'none';
+        }
+        await this.applySearch('');
+    }
+
+    /**
+     * Obtiene el término de búsqueda actual.
+     * @returns {string}
+     */
+    getSearchTerm() {
+        return this.searchTerm;
     }
 
     /**
@@ -215,6 +341,8 @@ export class DataGridView {
         if (this.options.serverSide) {
             if (typeof this.options.onSort === 'function') {
                 this.options.onSort(this.sortColumn, this.sortDirection);
+            } else if (typeof this.options.onPageChange === 'function') {
+                this.options.onPageChange(this.currentPage, this.pageSize, this.searchTerm, { field: this.sortColumn, direction: this.sortDirection });
             }
         } else {
             this.applyClientSort();
@@ -243,27 +371,6 @@ export class DataGridView {
 
             return this.sortDirection === 'asc' ? valA - valB : valB - valA;
         });
-    }
-
-    /**
-     * Aplica el filtrado de búsqueda en memoria (modo local).
-     */
-    applyClientSearch() {
-        if (!this.searchTerm) {
-            this.filteredData = [...this.data];
-        } else {
-            this.filteredData = this.data.filter(row => {
-                return this.options.columns.some(col => {
-                    if (!col.field) return false;
-                    const val = row[col.field];
-                    return val !== undefined && val !== null && String(val).toLowerCase().includes(this.searchTerm);
-                });
-            });
-        }
-
-        this.currentPage = 1;
-        this.applyClientSort();
-        this.render();
     }
 
     /**
@@ -422,7 +529,7 @@ export class DataGridView {
         this.currentPage = pageNumber;
 
         if (this.options.serverSide && typeof this.options.onPageChange === 'function') {
-            await this.options.onPageChange(this.currentPage, this.pageSize);
+            await this.options.onPageChange(this.currentPage, this.pageSize, this.searchTerm);
         } else {
             this.render();
         }
@@ -437,7 +544,7 @@ export class DataGridView {
         this.currentPage = 1;
 
         if (this.options.serverSide && typeof this.options.onPageChange === 'function') {
-            await this.options.onPageChange(this.currentPage, this.pageSize);
+            await this.options.onPageChange(this.currentPage, this.pageSize, this.searchTerm);
         } else {
             this.render();
         }
@@ -450,17 +557,15 @@ export class DataGridView {
      */
     setData(newData, resetPage = false) {
         this.data = Array.isArray(newData) ? [...newData] : [];
-        this.filteredData = [...this.data];
+        this.applyClientSearch();
 
         if (resetPage) {
             this.currentPage = 1;
         } else {
-            // Asegurar que la página actual no sobrepase el total de páginas tras la actualización
             const totalPages = Math.ceil(this.filteredData.length / this.pageSize) || 1;
             this.currentPage = Math.min(Math.max(1, this.currentPage), totalPages);
         }
 
-        this.applyClientSort();
         this.render();
     }
 
@@ -491,7 +596,7 @@ export class DataGridView {
      */
     async reload() {
         if (this.options.serverSide && typeof this.options.onPageChange === 'function') {
-            await this.options.onPageChange(this.currentPage, this.pageSize);
+            await this.options.onPageChange(this.currentPage, this.pageSize, this.searchTerm);
         } else {
             this.render();
         }
@@ -533,6 +638,9 @@ export class DataGridView {
      * Destruye la tabla y limpia el DOM para liberar memoria en SPAs.
      */
     destroy() {
+        if (this.debounceTimer) {
+            clearTimeout(this.debounceTimer);
+        }
         if (this.target) {
             this.target.innerHTML = '';
         }
