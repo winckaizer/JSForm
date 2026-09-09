@@ -125,7 +125,7 @@ async btnBorrar_click() {
 
 ### DataGridView
 
-Componente nativo de tabla de datos en Vanilla JS (cero dependencias externas). Soporta columnas configurables, renderers personalizados, ordenación, altura fija con scroll, buscador universal (con soporte `searchOnEnter`), paginación en memoria o paginación remota conectada a tu Backend.
+Componente nativo de tabla de datos en Vanilla JS (cero dependencias externas). Soporta columnas configurables, renderers personalizados, ordenación, altura fija con scroll, buscador universal (con soporte `searchOnEnter`), internacionalización reactiva (`i18n`), selector de filas integrado en el pie de página junto al contador de registros, y paginación en memoria o remota conectada a tu Backend.
 
 ```javascript
 import { DataGridView } from '../../core/JSForm.DataGridView.js';
@@ -134,16 +134,18 @@ import { DataGridView } from '../../core/JSForm.DataGridView.js';
 async init() {
     this.grid = new DataGridView('gridUsuarios', {
         columns: [
-            { field: 'id', header: 'ID', width: '70px', align: 'center' },
-            { field: 'nombre', header: 'Nombre Completo' },
-            { field: 'email', header: 'Correo Electrónico' },
+            { field: 'id', header: 'ID', i18n: 'users.columns.id', width: '70px', align: 'center' },
+            { field: 'nombre', header: 'Nombre Completo', i18n: 'users.columns.name' },
+            { field: 'email', header: 'Correo Electrónico', i18n: 'users.columns.email' },
             { 
                 field: 'activo', 
                 header: 'Estado',
+                i18n: 'users.columns.status',
                 render: (val, row) => `<span class="badge ${val ? 'activo' : 'inactivo'}">${val ? 'Activo' : 'Inactivo'}</span>` 
             },
             {
                 header: 'Acciones',
+                i18n: 'users.columns.actions',
                 width: '100px',
                 render: (val, row) => `<button class="btn-sm" data-id="${row.id}">Editar</button>`
             }
@@ -173,6 +175,27 @@ onDestroy() {
     if (this.grid) {
         this.grid.destroy();
     }
+}
+```
+
+#### Soporte de Internacionalización (i18n) en DataGridView
+
+El grid reacciona automáticamente a cambios de idioma (`i18n.setLanguage(...)` o `State.set('jsform_lang', ...)`). Puedes agregar las claves estándar en tus archivos `app/i18n/es.json` y `app/i18n/en.json`:
+
+```json
+{
+  "datagrid": {
+    "search": "Search all columns...",
+    "show": "Show",
+    "rows": "rows",
+    "empty": "No records available",
+    "info": "Showing {start} to {end} of {total} records (Page {page} of {totalPages})",
+    "clearSearch": "Clear search",
+    "first": "First",
+    "prev": "Previous",
+    "next": "Next",
+    "last": "Last"
+  }
 }
 ```
 

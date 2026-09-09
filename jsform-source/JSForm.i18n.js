@@ -1,6 +1,6 @@
 // File: core/JSForm.i18n.js
 import Config from '../jsform.config.js';
-import { State } from './JSForm.State.js';
+import { State } from './JSForm.state.js';
 
 /**
  * Servicio de Internacionalización (i18n) para JSForm.

@@ -226,16 +226,18 @@ export class MiControlador extends MiDesigner {
     async init() {
         this.grid = new DataGridView('gridUsuarios', {
             columns: [
-                { field: 'id', header: 'ID', width: '70px', align: 'center' },
-                { field: 'nombre', header: 'Nombre' },
-                { field: 'email', header: 'Correo Electrónico' },
+                { field: 'id', header: 'ID', i18n: 'users.columns.id', width: '70px', align: 'center' },
+                { field: 'nombre', header: 'Nombre', i18n: 'users.columns.name' },
+                { field: 'email', header: 'Correo Electrónico', i18n: 'users.columns.email' },
                 { 
                     field: 'activo', 
                     header: 'Estado',
+                    i18n: 'users.columns.status',
                     render: (val, row) => `<span class="badge ${val ? 'badge-success' : 'badge-danger'}">${val ? 'Activo' : 'Inactivo'}</span>` 
                 },
                 {
                     header: 'Acciones',
+                    i18n: 'users.columns.actions',
                     width: '100px',
                     align: 'center',
                     render: (val, row) => `<button class="btn-sm" data-id="${row.id}">Editar</button>`
@@ -385,7 +387,19 @@ Application.showError(404, this.miPanelInterno);
     "user_placeholder": "Escribe tu usuario",
     "submit_tooltip": "Haz clic para entrar"
   },
-  "welcome_message": "Bienvenido, {user}."
+  "welcome_message": "Bienvenido, {user}.",
+  "datagrid": {
+    "search": "Buscar en todas las columnas...",
+    "show": "Mostrar",
+    "rows": "filas",
+    "empty": "No hay registros disponibles",
+    "info": "Mostrando {start} a {end} de {total} registros (Pág. {page} de {totalPages})",
+    "clearSearch": "Limpiar búsqueda",
+    "first": "Primero",
+    "prev": "Anterior",
+    "next": "Siguiente",
+    "last": "Último"
+  }
 }
 </code></pre>
             </li>

@@ -5,6 +5,31 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 
 ---
 
+## [1.3.3] - 2026-09-09
+
+### 🌐 Internacionalización (i18n) en DataGridView
+* **Soporte Reactivo de Idiomas en Tiempo Real:**
+  * Integración nativa con `JSForm.i18n` y `JSForm.State`. La tabla se suscribe automáticamente a cambios en la clave `'jsform_lang'` y actualiza su interfaz al instante sin reiniciar la página actual, la búsqueda ni los datos.
+* **Traducción de Encabezados de Columnas (`col.i18n`):**
+  * Cada columna ahora puede definir una clave de traducción opcional (ej: `{ field: 'nombre', header: 'Nombre', i18n: 'users.columns.name' }`). Si la clave existe en el archivo de idioma cargado se traduce dinámicamente; si no, utiliza el `header` o `field` como respaldo seguro.
+* **Textos de Controles y Paginación Localizados:**
+  * Traducción dinámica del selector de filas ("Mostrar" / "filas"), placeholder del buscador, botón de limpieza de búsqueda ("Limpiar búsqueda"), mensaje de tabla vacía ("No hay registros disponibles"), indicador de paginación con interpolación de variables ("Mostrando {start} a {end} de {total} registros...") y tooltips accesibles en botones de navegación ("Primero", "Anterior", "Siguiente", "Último").
+* **Mapeo de Claves Personalizable (`options.i18n`):**
+  * Permite personalizar o mapear las claves del diccionario según la estructura JSON del proyecto.
+* **Ciclo de Vida Limpio:**
+  * Al llamar a `grid.destroy()`, la suscripción a cambios de idioma se cancela automáticamente para evitar fugas de memoria en aplicaciones SPA.
+
+### 🎨 Mejoras de Interfaz y Usabilidad en DataGridView
+* **Reubicación Ergonómica del Selector de Filas:**
+  * El control de cantidad de filas por página (*"Mostrar X filas"*) se trasladó de la parte superior izquierda al pie de página inferior (`footer`), ubicándose directamente al lado del indicador de registros (*"Mostrando X a Y de Z registros..."*).
+* **Barra Superior Limpia y Despejada:**
+  * La cabecera superior ahora alberga exclusivamente el buscador universal alineado a la derecha. Si el buscador se deshabilita (`searching: false`), la barra superior no se renderiza, maximizando el área visual de datos.
+* **Agrupación Coherente en el Pie de Página:**
+  * Todos los controles de navegación, conteo y tamaño de página residen ahora en un único contenedor inferior responsivo (`.jsform-grid-footer`), optimizando la experiencia de usuario y reduciendo el ruido visual en la cabecera.
+
+---
+
+## [1.3.1] - 2026-09-08
 ## [1.3.2] - 2026-09-08
 
 ### 🚀 Novedades en DataGridView

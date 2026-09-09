@@ -1,16 +1,18 @@
 // File: core/JSForm.DataGridView.js
+import { i18n } from './JSForm.i18n.js';
+import { State } from './JSForm.state.js';
 
 /**
  * JSForm.DataGridView
  * Componente de tabla de datos nativo en Vanilla JS.
- * Inspirado en el DataGridView de Windows Forms con soporte para paginación y búsqueda local o remota (backend).
+ * Inspirado en el DataGridView de Windows Forms con soporte para paginación, búsqueda local/remota e internacionalización (i18n).
  */
 export class DataGridView {
     /**
      * Crea e inicializa una instancia de DataGridView.
      * @param {string|HTMLElement} target - ID del elemento o el elemento DOM donde se montará la tabla.
      * @param {object} options - Opciones de configuración.
-     * @param {Array<object>} options.columns - Definición de columnas: [{ field: 'id', header: 'ID', width: '80px', align: 'center', render: (val, row) => '...', sortable: true }]
+     * @param {Array<object>} options.columns - Definición de columnas: [{ field: 'id', header: 'ID', i18n: 'users.id', width: '80px', align: 'center', render: (val, row) => '...', sortable: true }]
      * @param {Array<object>} [options.dataSource=[]] - Datos iniciales en memoria (para modo local).
      * @param {number} [options.pageSize=10] - Cantidad de filas a mostrar por página.
      * @param {Array<number>|boolean} [options.pageSizeOptions=[5, 10, 25, 50, 100]] - Opciones del selector de filas.
@@ -24,6 +26,7 @@ export class DataGridView {
      * @param {number} [options.searchDebounce=300] - Tiempo de espera en milisegundos para búsqueda automática en servidor.
      * @param {boolean} [options.serverSide=false] - Habilitar modo backend (dispara onPageChange / onSearch).
      * @param {string} [options.emptyMessage='No hay registros disponibles'] - Mensaje cuando la tabla esté vacía.
+     * @param {object} [options.i18n={}] - Personalización de claves de traducción para el grid.
      * @param {function} [options.onPageChange] - Callback al cambiar página/tamaño en modo servidor: (page, pageSize, query) => {}
      * @param {function} [options.onSearch] - Callback específico al realizar búsquedas en modo servidor: (query, page, pageSize) => {}
      * @param {function} [options.onRowClick] - Callback al hacer clic en una fila: (row, index, event) => {}
@@ -56,7 +59,20 @@ export class DataGridView {
             onSearch: null,
             onRowClick: null,
             onSort: null,
-            ...options
+            ...options,
+            i18n: {
+                search: 'datagrid.search',
+                show: 'datagrid.show',
+                rows: 'datagrid.rows',
+                empty: 'datagrid.empty',
+                info: 'datagrid.info',
+                clearSearch: 'datagrid.clearSearch',
+                first: 'datagrid.first',
+                prev: 'datagrid.prev',
+                next: 'datagrid.next',
+                last: 'datagrid.last',
+                ...(options.i18n || {})
+            }
         };
 
         // Estado interno
@@ -71,6 +87,14 @@ export class DataGridView {
         this.debounceTimer = null;
         this.container = null;
 
+        // Suscripción reactiva al cambio de idioma (i18n)
+        this.langUnsubscribe = null;
+        if (typeof State !== 'undefined' && typeof State.subscribe === 'function') {
+            this.langUnsubscribe = State.subscribe('jsform_lang', () => {
+                this.refreshLanguage();
+            });
+        }
+
         // Renderizado inicial
         this.init();
     }
@@ -83,6 +107,48 @@ export class DataGridView {
     }
 
     /**
+     * Resuelve una traducción usando JSForm.i18n si existe, con fallback predeterminado.
+     * Soporta interpolación de parámetros {clave}.
+     * @param {string} key - Clave de traducción (ej. 'datagrid.search').
+     * @param {string} [fallback=''] - Texto de respaldo si la clave no existe.
+     * @param {object} [params=null] - Parámetros a reemplazar en el texto.
+     * @returns {string}
+     * @private
+     */
+    _t(key, fallback = '', params = null) {
+        let text = fallback;
+        try {
+            if (typeof i18n !== 'undefined' && i18n._translations && Object.keys(i18n._translations).length > 0) {
+                const resolved = typeof i18n._resolveKey === 'function' ? i18n._resolveKey(key, i18n._translations) : undefined;
+                if (resolved !== undefined && resolved !== null) {
+                    text = resolved;
+                }
+            }
+        } catch (e) {
+            // En caso de cualquier error, mantiene el fallback
+        }
+
+        if (params && typeof text === 'string') {
+            Object.keys(params).forEach(paramKey => {
+                text = text.replace(new RegExp(`{${paramKey}}`, 'g'), params[paramKey]);
+            });
+        }
+        return text;
+    }
+
+    /**
+     * Actualiza dinámicamente los textos, encabezados, buscador y paginador según el idioma actual,
+     * conservando la página actual, ordenación y datos sin necesidad de recargar.
+     */
+    refreshLanguage() {
+        this.renderHeaders();
+        if (this.toolbarEl) {
+            this.renderToolbar();
+        }
+        this.render();
+    }
+
+    /**
      * Inicializa la estructura del DOM de la tabla.
      */
     init() {
@@ -92,8 +158,8 @@ export class DataGridView {
         this.container = document.createElement('div');
         this.container.className = 'jsform-grid-container';
 
-        // 1. Barra de Herramientas Superior (Buscador / Selector de tamaño)
-        if (this.options.searching || this.options.pageSizeOptions !== false) {
+        // 1. Barra de Herramientas Superior (Buscador)
+        if (this.options.searching) {
             this.toolbarEl = document.createElement('div');
             this.toolbarEl.className = 'jsform-grid-toolbar';
             this.renderToolbar();
@@ -135,38 +201,50 @@ export class DataGridView {
     }
 
     /**
-     * Renderiza la barra de herramientas (selector de filas y buscador).
+     * Crea el selector de cantidad de filas por página.
+     * @returns {HTMLElement|null}
+     */
+    createLengthSelector() {
+        if (!this.options.pageSizeOptions || !Array.isArray(this.options.pageSizeOptions)) {
+            return null;
+        }
+
+        const lengthDiv = document.createElement('div');
+        lengthDiv.className = 'jsform-grid-length-wrapper';
+        const showText = this._t(this.options.i18n.show, 'Mostrar');
+        const rowsText = this._t(this.options.i18n.rows, 'filas');
+        lengthDiv.innerHTML = `
+            <label class="jsform-grid-length-label">
+                ${showText}
+                <select class="jsform-grid-pagesize-select">
+                    ${this.options.pageSizeOptions.map(size => `<option value="${size}" ${size === this.pageSize ? 'selected' : ''}>${size}</option>`).join('')}
+                </select>
+                ${rowsText}
+            </label>
+        `;
+        const selectEl = lengthDiv.querySelector('select');
+        selectEl.addEventListener('change', (e) => {
+            this.setPageSize(parseInt(e.target.value));
+        });
+        return lengthDiv;
+    }
+
+    /**
+     * Renderiza la barra de herramientas superior (buscador).
      */
     renderToolbar() {
+        if (!this.toolbarEl) return;
         this.toolbarEl.innerHTML = '';
-
-        // Selector de tamaño de página
-        if (this.options.pageSizeOptions && Array.isArray(this.options.pageSizeOptions)) {
-            const lengthDiv = document.createElement('div');
-            lengthDiv.className = 'jsform-grid-length-wrapper';
-            lengthDiv.innerHTML = `
-                <label style="font-size: 0.9em; color: var(--jsform-grid-text-muted); display: flex; align-items: center; gap: 6px;">
-                    Mostrar
-                    <select class="jsform-grid-pagesize-select">
-                        ${this.options.pageSizeOptions.map(size => `<option value="${size}" ${size === this.pageSize ? 'selected' : ''}>${size}</option>`).join('')}
-                    </select>
-                    filas
-                </label>
-            `;
-            const selectEl = lengthDiv.querySelector('select');
-            selectEl.addEventListener('change', (e) => {
-                this.setPageSize(parseInt(e.target.value));
-            });
-            this.toolbarEl.appendChild(lengthDiv);
-        }
 
         // Buscador
         if (this.options.searching) {
             const searchDiv = document.createElement('div');
             searchDiv.className = 'jsform-grid-search-wrapper';
+            const searchPlaceholder = this._t(this.options.i18n.search, this.options.searchPlaceholder);
+            const clearTitle = this._t(this.options.i18n.clearSearch, 'Limpiar búsqueda');
             searchDiv.innerHTML = `
-                <input type="text" class="jsform-grid-search-input" placeholder="${this.options.searchPlaceholder}" value="${this.searchTerm}">
-                <button type="button" class="jsform-grid-search-clear" title="Limpiar búsqueda" style="display: ${this.searchTerm ? 'inline-flex' : 'none'};">✕</button>
+                <input type="text" class="jsform-grid-search-input" placeholder="${searchPlaceholder}" value="${this.searchTerm}">
+                <button type="button" class="jsform-grid-search-clear" title="${clearTitle}" style="display: ${this.searchTerm ? 'inline-flex' : 'none'};">✕</button>
             `;
 
             this.searchInputEl = searchDiv.querySelector('.jsform-grid-search-input');
@@ -300,7 +378,10 @@ export class DataGridView {
 
         this.options.columns.forEach(col => {
             const th = document.createElement('th');
-            th.innerHTML = col.header || col.field || '';
+            const headerTitle = col.i18n 
+                ? this._t(col.i18n, col.header || col.field || '') 
+                : (col.header || col.field || '');
+            th.innerHTML = headerTitle;
             if (col.width) th.style.width = col.width;
             if (col.align) th.style.textAlign = col.align;
 
@@ -397,7 +478,8 @@ export class DataGridView {
         if (pageData.length === 0) {
             const colCount = this.options.columns.length || 1;
             const tr = document.createElement('tr');
-            tr.innerHTML = `<td colspan="${colCount}" class="jsform-grid-empty">${this.options.emptyMessage}</td>`;
+            const emptyMsg = this._t(this.options.i18n.empty, this.options.emptyMessage);
+            tr.innerHTML = `<td colspan="${colCount}" class="jsform-grid-empty">${emptyMsg}</td>`;
             this.tbodyEl.appendChild(tr);
         } else {
             // Renderizar filas
@@ -454,22 +536,45 @@ export class DataGridView {
         const startRecord = totalCount === 0 ? 0 : (this.currentPage - 1) * this.pageSize + 1;
         const endRecord = Math.min(this.currentPage * this.pageSize, totalCount);
 
+        // Contenedor izquierdo: Información y Selector de filas al lado
+        const leftEl = document.createElement('div');
+        leftEl.className = 'jsform-grid-footer-left';
+
         // 1. Texto de información
         const infoEl = document.createElement('div');
         infoEl.className = 'jsform-grid-info';
-        infoEl.textContent = `Mostrando ${startRecord} a ${endRecord} de ${totalCount.toLocaleString()} registros (Pág. ${this.currentPage} de ${totalPages})`;
-        this.footerEl.appendChild(infoEl);
+        const defaultInfo = `Mostrando ${startRecord} a ${endRecord} de ${totalCount.toLocaleString()} registros (Pág. ${this.currentPage} de ${totalPages})`;
+        infoEl.textContent = this._t(
+            this.options.i18n.info,
+            defaultInfo,
+            {
+                start: startRecord,
+                end: endRecord,
+                total: totalCount.toLocaleString(),
+                page: this.currentPage,
+                totalPages: totalPages
+            }
+        );
+        leftEl.appendChild(infoEl);
 
-        // 2. Controles de Paginación
+        // 2. Selector de tamaño de página (al lado de Mostrando...)
+        const lengthEl = this.createLengthSelector();
+        if (lengthEl) {
+            leftEl.appendChild(lengthEl);
+        }
+
+        this.footerEl.appendChild(leftEl);
+
+        // 3. Controles de Paginación
         const paginationEl = document.createElement('div');
         paginationEl.className = 'jsform-grid-pagination';
 
         // Botón Primero (<<)
-        const btnFirst = this.createPageButton('«', () => this.goToPage(1), this.currentPage === 1);
+        const btnFirst = this.createPageButton('«', () => this.goToPage(1), this.currentPage === 1, false, this._t(this.options.i18n.first, 'Primero'));
         paginationEl.appendChild(btnFirst);
 
         // Botón Anterior (<)
-        const btnPrev = this.createPageButton('‹', () => this.goToPage(this.currentPage - 1), this.currentPage === 1);
+        const btnPrev = this.createPageButton('‹', () => this.goToPage(this.currentPage - 1), this.currentPage === 1, false, this._t(this.options.i18n.prev, 'Anterior'));
         paginationEl.appendChild(btnPrev);
 
         // Números de Página dinámicos
@@ -487,11 +592,11 @@ export class DataGridView {
         }
 
         // Botón Siguiente (>)
-        const btnNext = this.createPageButton('›', () => this.goToPage(this.currentPage + 1), this.currentPage === totalPages || totalCount === 0);
+        const btnNext = this.createPageButton('›', () => this.goToPage(this.currentPage + 1), this.currentPage === totalPages || totalCount === 0, false, this._t(this.options.i18n.next, 'Siguiente'));
         paginationEl.appendChild(btnNext);
 
         // Botón Último (>>)
-        const btnLast = this.createPageButton('»', () => this.goToPage(totalPages), this.currentPage === totalPages || totalCount === 0);
+        const btnLast = this.createPageButton('»', () => this.goToPage(totalPages), this.currentPage === totalPages || totalCount === 0, false, this._t(this.options.i18n.last, 'Último'));
         paginationEl.appendChild(btnLast);
 
         this.footerEl.appendChild(paginationEl);
@@ -500,11 +605,12 @@ export class DataGridView {
     /**
      * Crea un botón de página para la paginación.
      */
-    createPageButton(text, onClick, disabled = false, isActive = false) {
+    createPageButton(text, onClick, disabled = false, isActive = false, title = null) {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'jsform-grid-page-btn';
         btn.textContent = text;
+        if (title) btn.title = title;
         if (disabled) btn.disabled = true;
         if (isActive) btn.classList.add('active');
 
@@ -638,6 +744,10 @@ export class DataGridView {
      * Destruye la tabla y limpia el DOM para liberar memoria en SPAs.
      */
     destroy() {
+        if (typeof this.langUnsubscribe === 'function') {
+            this.langUnsubscribe();
+            this.langUnsubscribe = null;
+        }
         if (this.debounceTimer) {
             clearTimeout(this.debounceTimer);
         }
