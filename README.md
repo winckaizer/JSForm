@@ -190,6 +190,7 @@ El grid reacciona automáticamente a cambios de idioma (`i18n.setLanguage(...)` 
     "rows": "rows",
     "empty": "No records available",
     "info": "Showing {start} to {end} of {total} records (Page {page} of {totalPages})",
+    "loading": "Loading records...",
     "clearSearch": "Clear search",
     "first": "First",
     "prev": "Previous",
@@ -198,6 +199,32 @@ El grid reacciona automáticamente a cambios de idioma (`i18n.setLanguage(...)` 
   }
 }
 ```
+
+#### Estado de Carga y Animación de Spinner
+
+DataGridView incluye un overlay con animación de spinner giratorio nativo en CSS y texto descriptivo (`loadingMessage`):
+
+* **Modo Backend Automático (`serverSide: true`):** El spinner se muestra automáticamente durante las consultas de paginación, ordenación y búsqueda en servidor, y se oculta tan pronto como se invoca `grid.setRemoteData(...)` o concluye la petición.
+* **Modo Manual o Local:**
+  ```javascript
+  // Mostrar el spinner con texto por defecto o personalizado:
+  this.grid.showLoading('Consultando base de datos...');
+
+  // Ocultar el spinner:
+  this.grid.hideLoading();
+
+  // Comprobar estado:
+  if (this.grid.isLoading()) { ... }
+  ```
+* **Al Inicializar:** Puedes pasar `loading: true` en la configuración si la tabla debe mostrar el spinner inmediatamente mientras esperas la primera respuesta:
+  ```javascript
+  this.grid = new DataGridView('gridUsuarios', {
+      columns: [...],
+      loading: true, // Inicia con el spinner activo
+      serverSide: true,
+      ...
+  });
+  ```
 
 ### HttpClient
 

@@ -25,6 +25,8 @@ export class DataGridView {
      * @param {boolean} [options.searchOnEnter=false] - Si es true, busca solo al presionar 'Enter'. Si es false, busca automáticamente con debounce.
      * @param {number} [options.searchDebounce=300] - Tiempo de espera en milisegundos para búsqueda automática en servidor.
      * @param {boolean} [options.serverSide=false] - Habilitar modo backend (dispara onPageChange / onSearch).
+     * @param {boolean} [options.loading=false] - Iniciar mostrando el spinner de carga.
+     * @param {string} [options.loadingMessage='Cargando registros...'] - Texto a mostrar debajo del spinner.
      * @param {string} [options.emptyMessage='No hay registros disponibles'] - Mensaje cuando la tabla esté vacía.
      * @param {object} [options.i18n={}] - Personalización de claves de traducción para el grid.
      * @param {function} [options.onPageChange] - Callback al cambiar página/tamaño en modo servidor: (page, pageSize, query) => {}
@@ -54,6 +56,8 @@ export class DataGridView {
             searchOnEnter: false,
             searchDebounce: 300,
             serverSide: false,
+            loading: false,
+            loadingMessage: 'Cargando registros...',
             emptyMessage: 'No hay registros disponibles',
             onPageChange: null,
             onSearch: null,
@@ -66,6 +70,7 @@ export class DataGridView {
                 rows: 'datagrid.rows',
                 empty: 'datagrid.empty',
                 info: 'datagrid.info',
+                loading: 'datagrid.loading',
                 clearSearch: 'datagrid.clearSearch',
                 first: 'datagrid.first',
                 prev: 'datagrid.prev',
@@ -86,6 +91,8 @@ export class DataGridView {
         this.searchTerm = '';
         this.debounceTimer = null;
         this.container = null;
+        this._isLoading = false;
+        this.loadingOverlayEl = null;
 
         // Suscripción reactiva al cambio de idioma (i18n)
         this.langUnsubscribe = null;
@@ -97,6 +104,11 @@ export class DataGridView {
 
         // Renderizado inicial
         this.init();
+
+        // Si se solicitó estado inicial de carga
+        if (this.options.loading) {
+            this.showLoading();
+        }
     }
 
     /**
@@ -145,7 +157,71 @@ export class DataGridView {
         if (this.toolbarEl) {
             this.renderToolbar();
         }
+        if (this.loadingOverlayEl && !this._customLoadingText) {
+            const textEl = this.loadingOverlayEl.querySelector('.jsform-grid-loading-text');
+            if (textEl) {
+                textEl.textContent = this._t(this.options.i18n.loading, this.options.loadingMessage || 'Cargando registros...');
+            }
+        }
         this.render();
+    }
+
+    /**
+     * Crea e inicializa el elemento overlay del spinner de carga.
+     * @private
+     */
+    createLoadingOverlay() {
+        this.loadingOverlayEl = document.createElement('div');
+        this.loadingOverlayEl.className = 'jsform-grid-loading-overlay';
+        this.loadingOverlayEl.style.display = 'none';
+
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'jsform-grid-loading-content';
+
+        const spinner = document.createElement('div');
+        spinner.className = 'jsform-grid-spinner';
+
+        const textEl = document.createElement('span');
+        textEl.className = 'jsform-grid-loading-text';
+        textEl.textContent = this._t(this.options.i18n.loading, this.options.loadingMessage || 'Cargando registros...');
+
+        contentDiv.appendChild(spinner);
+        contentDiv.appendChild(textEl);
+        this.loadingOverlayEl.appendChild(contentDiv);
+        this.bodyWrapperEl.appendChild(this.loadingOverlayEl);
+    }
+
+    /**
+     * Muestra el spinner de carga sobre la tabla.
+     * @param {string} [customText] - Mensaje opcional personalizado de carga.
+     */
+    showLoading(customText = null) {
+        if (!this.loadingOverlayEl) return;
+        this._customLoadingText = !!customText;
+        const textEl = this.loadingOverlayEl.querySelector('.jsform-grid-loading-text');
+        if (textEl) {
+            textEl.textContent = customText || this._t(this.options.i18n.loading, this.options.loadingMessage || 'Cargando registros...');
+        }
+        this.loadingOverlayEl.style.display = 'flex';
+        this._isLoading = true;
+    }
+
+    /**
+     * Oculta el spinner de carga sobre la tabla.
+     */
+    hideLoading() {
+        if (!this.loadingOverlayEl) return;
+        this.loadingOverlayEl.style.display = 'none';
+        this._isLoading = false;
+        this._customLoadingText = false;
+    }
+
+    /**
+     * Indica si la tabla está actualmente en estado de carga.
+     * @returns {boolean}
+     */
+    isLoading() {
+        return !!this._isLoading;
     }
 
     /**
@@ -184,6 +260,10 @@ export class DataGridView {
         this.tableEl.appendChild(this.theadEl);
         this.tableEl.appendChild(this.tbodyEl);
         this.bodyWrapperEl.appendChild(this.tableEl);
+
+        // 3.1 Overlay de Carga (Spinner)
+        this.createLoadingOverlay();
+
         this.container.appendChild(this.bodyWrapperEl);
 
         // 4. Barra de Paginación y Estado Inferior
@@ -290,10 +370,15 @@ export class DataGridView {
         this.currentPage = 1;
 
         if (this.options.serverSide) {
-            if (typeof this.options.onSearch === 'function') {
-                await this.options.onSearch(this.searchTerm, 1, this.pageSize);
-            } else if (typeof this.options.onPageChange === 'function') {
-                await this.options.onPageChange(1, this.pageSize, this.searchTerm);
+            this.showLoading();
+            try {
+                if (typeof this.options.onSearch === 'function') {
+                    await this.options.onSearch(this.searchTerm, 1, this.pageSize);
+                } else if (typeof this.options.onPageChange === 'function') {
+                    await this.options.onPageChange(1, this.pageSize, this.searchTerm);
+                }
+            } finally {
+                this.hideLoading();
             }
         } else {
             this.applyClientSearch();
@@ -420,10 +505,15 @@ export class DataGridView {
         this.renderHeaders();
 
         if (this.options.serverSide) {
-            if (typeof this.options.onSort === 'function') {
-                this.options.onSort(this.sortColumn, this.sortDirection);
-            } else if (typeof this.options.onPageChange === 'function') {
-                this.options.onPageChange(this.currentPage, this.pageSize, this.searchTerm, { field: this.sortColumn, direction: this.sortDirection });
+            this.showLoading();
+            try {
+                if (typeof this.options.onSort === 'function') {
+                    await this.options.onSort(this.sortColumn, this.sortDirection);
+                } else if (typeof this.options.onPageChange === 'function') {
+                    await this.options.onPageChange(this.currentPage, this.pageSize, this.searchTerm, { field: this.sortColumn, direction: this.sortDirection });
+                }
+            } finally {
+                this.hideLoading();
             }
         } else {
             this.applyClientSort();
@@ -635,7 +725,12 @@ export class DataGridView {
         this.currentPage = pageNumber;
 
         if (this.options.serverSide && typeof this.options.onPageChange === 'function') {
-            await this.options.onPageChange(this.currentPage, this.pageSize, this.searchTerm);
+            this.showLoading();
+            try {
+                await this.options.onPageChange(this.currentPage, this.pageSize, this.searchTerm);
+            } finally {
+                this.hideLoading();
+            }
         } else {
             this.render();
         }
@@ -650,7 +745,12 @@ export class DataGridView {
         this.currentPage = 1;
 
         if (this.options.serverSide && typeof this.options.onPageChange === 'function') {
-            await this.options.onPageChange(this.currentPage, this.pageSize, this.searchTerm);
+            this.showLoading();
+            try {
+                await this.options.onPageChange(this.currentPage, this.pageSize, this.searchTerm);
+            } finally {
+                this.hideLoading();
+            }
         } else {
             this.render();
         }
@@ -662,6 +762,7 @@ export class DataGridView {
      * @param {boolean} [resetPage=false] - Si es true, vuelve a la página 1. Si es false (por defecto), se mantiene en la página actual.
      */
     setData(newData, resetPage = false) {
+        this.hideLoading();
         this.data = Array.isArray(newData) ? [...newData] : [];
         this.applyClientSearch();
 
@@ -685,6 +786,7 @@ export class DataGridView {
      * @param {number} [config.pageSize] - Tamaño de página (opcional).
      */
     setRemoteData({ data = [], total = 0, page, pageSize }) {
+        this.hideLoading();
         this.data = Array.isArray(data) ? [...data] : [];
         this.totalRecords = typeof total === 'number' ? total : 0;
         if (page !== undefined && page !== null) {
@@ -702,7 +804,12 @@ export class DataGridView {
      */
     async reload() {
         if (this.options.serverSide && typeof this.options.onPageChange === 'function') {
-            await this.options.onPageChange(this.currentPage, this.pageSize, this.searchTerm);
+            this.showLoading();
+            try {
+                await this.options.onPageChange(this.currentPage, this.pageSize, this.searchTerm);
+            } finally {
+                this.hideLoading();
+            }
         } else {
             this.render();
         }
@@ -756,6 +863,7 @@ export class DataGridView {
         }
         this.data = [];
         this.filteredData = [];
+        this.loadingOverlayEl = null;
         console.log(`[JSForm.DataGridView] 🧹 Grid destruido correctamente.`);
     }
 }

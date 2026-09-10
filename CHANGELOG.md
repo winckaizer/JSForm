@@ -5,6 +5,23 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 
 ---
 
+## [Unreleased]
+
+### ⏳ Spinner y Estado de Carga Nativo en DataGridView
+* **Overlay y Animación de Carga (Vanilla CSS):**
+  * Se implementó un overlay con desenfoque de fondo (`backdrop-filter`) y una tarjeta central con un spinner circular animado y mensaje descriptivo (`loadingMessage`).
+* **Integración Automática con Modo Servidor (`serverSide: true`):**
+  * La animación de carga se activa automáticamente al cambiar de página (`goToPage`), cambiar el tamaño de filas (`setPageSize`), ordenar columnas (`handleSort`), realizar búsquedas (`applySearch`) o recargar la tabla (`reload`), y se oculta de inmediato al recibir los datos vía `setRemoteData(...)`.
+* **Control Programático para Modo Local y Asíncrono:**
+  * Métodos `grid.showLoading([mensaje])`, `grid.hideLoading()` y `grid.isLoading()`.
+  * `grid.setData(...)` y `grid.setRemoteData(...)` ocultan automáticamente el spinner al actualizar los registros.
+* **Opción de Carga Inicial (`loading: true`):**
+  * Permite que el grid se monte mostrando el spinner inmediatamente mientras se espera la primera respuesta del servidor.
+* **Soporte de Internacionalización (i18n):**
+  * Texto de carga traducible reactivamente mediante la clave `datagrid.loading` (por defecto: *"Cargando registros..."*).
+
+---
+
 ## [1.3.3] - 2026-09-09
 
 ### 🌐 Internacionalización (i18n) en DataGridView

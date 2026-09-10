@@ -16,6 +16,7 @@
     --jsform-grid-primary: #2563eb;
     --jsform-grid-primary-hover: #1d4ed8;
     --jsform-grid-radius: 8px;
+    --jsform-grid-overlay-bg: rgba(255, 255, 255, 0.8);
 }
 
 /* Contenedor Principal */
@@ -112,6 +113,7 @@
     overflow-x: auto;
     overflow-y: auto;
     position: relative;
+    min-height: 160px;
 }
 
 /* Tabla */
@@ -243,5 +245,62 @@
 .jsform-grid-page-btn:disabled {
     opacity: 0.4;
     cursor: not-allowed;
+}
+
+/* ==========================================================================
+   Overlay y Animación de Carga (Spinner)
+   ========================================================================== */
+.jsform-grid-loading-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+    background-color: var(--jsform-grid-overlay-bg, rgba(255, 255, 255, 0.8));
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+    transition: opacity 0.2s ease-in-out;
+}
+
+.jsform-grid-loading-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 24px;
+    background: var(--jsform-grid-bg, #ffffff);
+    border: 1px solid var(--jsform-grid-border-color, #e5e7eb);
+    border-radius: var(--jsform-grid-radius, 8px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.jsform-grid-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid rgba(37, 99, 235, 0.18);
+    border-top-color: var(--jsform-grid-primary, #2563eb);
+    border-radius: 50%;
+    animation: jsform-grid-spin 0.75s linear infinite;
+}
+
+@keyframes jsform-grid-spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.jsform-grid-loading-text {
+    font-size: 0.88em;
+    font-weight: 500;
+    color: var(--jsform-grid-text-color, #1f2937);
 }
 
