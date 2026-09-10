@@ -5,7 +5,7 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 
 ---
 
-## [Unreleased]
+## [1.3.4] - 2026-09-10
 
 ### ⏳ Spinner y Estado de Carga Nativo en DataGridView
 * **Overlay y Animación de Carga (Vanilla CSS):**
@@ -19,6 +19,10 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
   * Permite que el grid se monte mostrando el spinner inmediatamente mientras se espera la primera respuesta del servidor.
 * **Soporte de Internacionalización (i18n):**
   * Texto de carga traducible reactivamente mediante la clave `datagrid.loading` (por defecto: *"Cargando registros..."*).
+
+### 🐛 Correcciones y Estabilidad
+* **Corrección de Sintaxis en `handleSort` (`async`):**
+  * Se corrigió la declaración del método `handleSort(field)` agregando la palabra clave `async`, solucionando el error `SyntaxError: await is a reserved identifier / Unexpected reserved word` que impedía la carga del módulo en el navegador al invocar callbacks asíncronos en modo `serverSide`.
 
 ---
 

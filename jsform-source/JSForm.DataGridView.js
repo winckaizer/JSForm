@@ -494,7 +494,7 @@ export class DataGridView {
     /**
      * Maneja el clic en un encabezado para ordenar.
      */
-    handleSort(field) {
+    async handleSort(field) {
         if (this.sortColumn === field) {
             this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
         } else {
