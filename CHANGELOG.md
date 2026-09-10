@@ -6,6 +6,7 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 ---
 
 ## [1.3.4] - 2026-09-10
+## [1.3.5] - 2026-09-10
 
 ### ⏳ Spinner y Estado de Carga Nativo en DataGridView
 * **Overlay y Animación de Carga (Vanilla CSS):**
