@@ -226,6 +226,53 @@ DataGridView incluye un overlay con animación de spinner giratorio nativo en CS
   });
   ```
 
+### Control
+
+Clase base para la creación, manipulación y renderizado fluido de elementos del DOM. Permite crear controles de forma declarativa mediante etiquetas o directamente desde cadenas de texto HTML complejas (tablas, cards, modales, etc.).
+
+#### Creación desde String HTML
+
+Puedes instanciar elementos directamente a partir de un template HTML usando `Control.fromHtml(...)` o pasando la cadena HTML al constructor:
+
+```javascript
+import { Control } from '../../core/JSForm.Control.js';
+
+// Crear una tabla compleja directamente desde un string HTML
+const miTabla = Control.fromHtml(`
+    <table class="table table-striped table-bordered" id="tblReporte">
+        <thead>
+            <tr><th>Nombre</th><th>Acción</th></tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Juan Pérez</td>
+                <td><button class="btn btn-sm btn-action">Seleccionar</button></td>
+            </tr>
+        </tbody>
+    </table>
+`);
+
+// Buscar elementos internos y enlazar eventos de forma encadenada
+miTabla.find('.btn-action')
+    .on('click', () => alert('Fila seleccionada'));
+
+// Renderizar dentro de un contenedor (por ID, elemento DOM o Control padre)
+miTabla.renderTo(this.panelPrincipal);
+```
+
+#### Creación Declarativa Tradicional
+
+```javascript
+// Creación estándar con tagName
+const tarjeta = new Control('div', 'cardUsuario', {
+    className: 'card p-3 shadow-sm',
+    innerHTML: '<h5>Perfil de Usuario</h5>'
+});
+
+tarjeta.addClass('activo')
+       .renderTo('contenedorCards');
+```
+
 ### HttpClient
 
 Un cliente para realizar peticiones a tus APIs de forma centralizada. Soporta múltiples configuraciones de API desde `jsform.config.js`.

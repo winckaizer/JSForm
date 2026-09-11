@@ -173,15 +173,26 @@ cls_menu_item_click(e, elemento) {
         <h2>6. Componentes del Núcleo</h2>
 
         <h3>JSForm.Control</h3>
-        <p>Para crear elementos del DOM dinámicamente desde el código.</p>
+        <p>Para crear elementos del DOM dinámicamente desde el código, ya sea de forma declarativa o directamente desde una cadena de código HTML (ej. tablas, tarjetas o layouts complejos).</p>
         <pre><code class="language-javascript">import { Control } from '../../core/JSForm.Control.js';
 
-// ... en un método de tu controlador ...
+// Opción 1: Crear directamente desde un string HTML
+const miTabla = Control.fromHtml(`
+    &lt;table class="table table-bordered"&gt;
+        &lt;tr&gt;&lt;td&gt;Celda 1&lt;/td&gt;&lt;td&gt;&lt;button class="btn-saludo"&gt;Click&lt;/button&gt;&lt;/td&gt;&lt;/tr&gt;
+    &lt;/table&gt;
+`, { id: 'tablaDinamica' });
+
+// Buscar elementos internos y enlazar eventos fácilmente
+miTabla.find('.btn-saludo').addEventListener('click', () => alert('¡Hola!'));
+miTabla.renderTo(this.miContenedor);
+
+// Opción 2: Creación declarativa tradicional
 const miDiv = new Control('div', 'divDinamico', {
     className: 'alert alert-info',
     html: '&lt;strong&gt;¡Hola!&lt;/strong&gt; Soy un div creado por código.'
 });
-miDiv.renderTo(this.miContenedor); // this.miContenedor es un div con id="miContenedor" en el HTML
+miDiv.renderTo(this.miContenedor);
 </code></pre>
 
         <h3>JSForm.MessageBox</h3>

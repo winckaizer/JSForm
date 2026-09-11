@@ -5,6 +5,19 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 
 ---
 
+## [1.3.6] - 2026-09-11
+
+### 🧩 Mejoras en JSForm.Control (Creación desde Strings HTML)
+* **Instanciación desde Cadenas HTML (`Control.fromHtml` / `Control.fromString`):**
+  * Ahora es posible crear elementos y estructuras HTML complejas directamente desde una cadena de texto (ej. `"<table><tr><td>hola</td></tr></table>"`, cards, diálogos, etc.) utilizando el parser de `<template>` nativo del navegador.
+  * El constructor `new Control(htmlOrTag, id, options)` detecta automáticamente si el primer argumento es un string HTML o un nombre de etiqueta tradicional.
+* **Métodos de Búsqueda y Manipulación Encadenables:**
+  * Métodos `find(selector)` y `findAll(selector)` para consultar elementos dentro del control recién creado.
+  * Métodos encadenables `on(event, handler)`, `off(event, handler)`, `addClass(...)`, `removeClass(...)`, `toggleClass(...)` y `append(...)`.
+  * `renderTo(parent)` ahora soporta inyectar en selectores por ID, elementos DOM o instancias de otro `Control`.
+
+---
+
 ## [1.3.4] - 2026-09-10
 ## [1.3.5] - 2026-09-10
 
