@@ -5,6 +5,23 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 
 ---
 
+## [1.3.7] - 2026-09-16
+
+### 🛡️ Manejador Global de Errores e Interceptor de Respuestas en HttpClient
+* **Control Centralizado de Sesión y Errores (401, Mantenimiento y Variables de Backend):**
+  * `HttpClient` ahora ejecuta automáticamente el `globalErrorHandler` configurado en `jsform.config.js` (o a nivel de API específica en `api[apiKey].errorHandler`) para todas las peticiones sin importar si la petición individual tiene un callback `error` local.
+  * Si el manejador global retorna `true`, el error se considera resuelto/consumido (ej. redirección automática a Login o refresco de token), evitando disparar mensajes o alertas locales redundantes.
+* **Validador de Respuestas de Negocio (`validateResponse`):**
+  * Permite interceptar respuestas que devuelven código HTTP 200 pero cuyo cuerpo JSON incluye indicadores de error (ej: `{ success: false, code: 401, message: "Sesión vencida" }`), enrutándolas automáticamente al flujo de error global.
+* **Opciones Avanzadas por Petición:**
+  * Opción `skipGlobalError: true` para ignorar el manejador global en peticiones específicas que requieran aislamiento silencioso.
+  * Opción `forceLocalError: true` para obligar a que el callback `error` local se ejecute aun cuando el error haya sido manejado globalmente.
+  * Soporte para `validateResponse` y `errorHandler` específicos por llamada individual.
+* **Configuración en Caliente (Runtime):**
+  * Métodos estáticos `HttpClient.setGlobalErrorHandler(fn)` y `HttpClient.setResponseValidator(fn)`.
+
+---
+
 ## [1.3.6] - 2026-09-11
 
 ### 🧩 Mejoras en JSForm.Control (Creación desde Strings HTML)

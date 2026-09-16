@@ -304,6 +304,58 @@ cargarUsuarios() {
 }
 ```
 
+#### Manejo Centralizado de Sesión (401) y Errores Globales
+
+Puedes centralizar el control de errores, expiración de tokens o variables personalizadas del backend directamente en tu archivo `jsform.config.js`:
+
+```javascript
+// jsform.config.js
+export default {
+    api: {
+        default: {
+            baseUrl: 'http://localhost:3000/api',
+            timeout: 5000
+        },
+        
+        // Se ejecuta automáticamente para todas las peticiones
+        globalErrorHandler: (error, status, data, context) => {
+            // Controlar sesión vencida (401) o variable de backend
+            if (status === 401 || data?.code === 401 || data?.sessionExpired) {
+                console.warn('Sesión caducada, redirigiendo al login...');
+                window.location.hash = '#/Login';
+                return true; // Retorna true para evitar alertas locales redundantes
+            }
+
+            // Controlar errores de servidor o mantenimiento
+            if (status === 503 || data?.maintenance) {
+                alert('El sistema se encuentra temporalmente en mantenimiento.');
+                return true;
+            }
+        },
+
+        // Opcional: Detectar respuestas HTTP 200 con errores de negocio en el JSON
+        validateResponse: (data, response) => {
+            if (data && data.success === false) {
+                const err = new Error(data.message || 'Error de negocio');
+                err.status = data.code || 400;
+                err.data = data;
+                return err; // Se enruta automáticamente al globalErrorHandler
+            }
+            return null;
+        }
+    }
+};
+```
+
+Si en una petición específica deseas omitir el manejador global, simplemente pasa `skipGlobalError: true`:
+
+```javascript
+HttpClient.get('/ping', {
+    skipGlobalError: true,
+    error: (err) => console.log('Manejo silencioso')
+});
+```
+
 ## ⚙️ Comandos
 
 *   `npm run dev`: Inicia el entorno de desarrollo con el watcher de archivos y el servidor de Vite.
