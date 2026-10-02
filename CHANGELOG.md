@@ -5,6 +5,31 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 
 ---
 
+## [1.3.8] - 2026-10-02
+
+### 🌐 Soporte para Método HTTP PATCH (`HttpClient.patch`)
+* **Peticiones Parciales REST:**
+  * Se agregó el método estático `HttpClient.patch(endpoint, data, options)` para soportar actualizaciones parciales en APIs REST modernas (Spring Boot, NestJS, Laravel, etc.).
+  * Hereda automáticamente toda la arquitectura de interceptores, timeout, cabeceras personalizadas y `globalErrorHandler`.
+
+### 🧭 Navegación Desacoplada (`Application.open` / `Application.navigate`)
+* **Navegación Dinámica por Convención:**
+  * Se implementó `Application.open(viewName, parameters)` y su alias `Application.navigate(viewName, parameters)`.
+  * Permite cambiar de pantalla pasando el nombre de la vista (ej. `Application.open('Dashboard')`) resolviendo dinámicamente el controlador desde el mapa de rutas o por convención (`/app/forms/[View]/[View].controller.js`), eliminando la necesidad de importar controladores manualmente en toda la aplicación.
+
+### 🛡️ Guards de Navegación y Manejo Seguro de Historial (`popstate` / `bfcache`)
+* **Protección de Rutas Previa al DOM (`Application.setNavigationGuard`):**
+  * Se implementó el sistema de Navigation Guards (Middleware de Rutas) con `Application.setNavigationGuard(async (toView, fromController) => boolean | string)`.
+  * La validación se ejecuta **antes** de evaluar layouts o inyectar cualquier HTML en el DOM, resolviendo definitivamente el problema de pantallas fantasma o fuga visual de datos en rutas protegidas.
+* **Manejo Seguro del Botón "Atrás" (`popstate`):**
+  * Al pulsar "Atrás" después de cerrar sesión, el guard intercepta la navegación, reescribe el historial con `window.history.replaceState` y redirige de inmediato a la vista pública (ej. `Login`), sin renderizar la vista protegida.
+* **Protección contra Caché de Navegación (`bfcache` / `pageshow`):**
+  * Se agregó soporte para detectar restauraciones de memoria congelada (`pageshow`, `event.persisted`), re-evaluando el guard y forzando la redirección limpia si la sesión ya no está activa.
+* **Auto-Routing Seguro en Desarrollo:**
+  * Al iniciar la aplicación o recargar una URL profunda, el guard valida el acceso antes de restaurar rutas protegidas desde el `pathname`.
+
+---
+
 ## [1.3.7] - 2026-09-16
 
 ### 🛡️ Manejador Global de Errores e Interceptor de Respuestas en HttpClient

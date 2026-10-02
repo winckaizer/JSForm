@@ -275,13 +275,21 @@ tarjeta.addClass('activo')
 
 ### HttpClient
 
-Un cliente para realizar peticiones a tus APIs de forma centralizada. Soporta múltiples configuraciones de API desde `jsform.config.js`.
+Un cliente para realizar peticiones a tus APIs de forma centralizada (`GET`, `POST`, `PUT`, `PATCH`, `DELETE`). Soporta múltiples configuraciones de API desde `jsform.config.js`.
 
 ```javascript
 import { HttpClient } from '../../core/JSForm.HttpClient.js';
 import { MessageBox } from '../../core/JSForm.MessageBox.js'; // Opcional, para mostrar errores
 
-// Dentro de un método de tu controlador
+// Actualización parcial de recursos con PATCH
+actualizarEstadoUsuario(id, activo) {
+    HttpClient.patch(`/users/${id}`, { activo }, {
+        success: (data) => console.log('Estado actualizado:', data),
+        error: (err) => console.error('Error al actualizar:', err)
+    });
+}
+
+// Petición GET estándar
 cargarUsuarios() {
     HttpClient.get('/users', {
         // Opcional: para usar una API no-default
@@ -354,6 +362,48 @@ HttpClient.get('/ping', {
     skipGlobalError: true,
     error: (err) => console.log('Manejo silencioso')
 });
+```
+
+### Navegación y Navigation Guards
+
+JSForm ofrece navegación desacoplada y protección global de rutas para evitar fugas de información o vistas fantasma tras cerrar sesión:
+
+#### Navegación Desacoplada (`Application.open` / `Application.navigate`)
+
+Puedes cambiar de vista pasando simplemente el nombre del formulario, sin necesidad de importar manualmente las clases de los controladores:
+
+```javascript
+import { Application } from '../../core/JSForm.Core.js';
+
+// En un evento o botón:
+btnIrDashboard_click() {
+    Application.open('Dashboard', { usuarioId: 45 }); 
+    // o con el alias:
+    // Application.navigate('Dashboard');
+}
+```
+
+#### Guards de Navegación (`Application.setNavigationGuard`)
+
+Registra un middleware de seguridad en `program.js` que se ejecutará **antes** de cargar el layout o inyectar cualquier HTML en el DOM. Si el usuario cierra sesión y pulsa el botón **"Atrás"** del navegador, el guard bloquea la navegación hacia la vista protegida, sobrescribe el historial con `replaceState` y redirige a la vista segura:
+
+```javascript
+// app/program.js
+import { Application } from '../core/JSForm.Core.js';
+
+// Registrar Guard de Seguridad
+Application.setNavigationGuard(async (toView, fromController) => {
+    const rutasPublicas = ['Login', 'Registro', 'RecuperarClave'];
+    const estaAutenticado = !!localStorage.getItem('token');
+
+    if (!rutasPublicas.includes(toView) && !estaAutenticado) {
+        return 'Login'; // Redirige a Login antes de tocar el DOM
+    }
+    return true; // Permite la navegación
+});
+
+await Application.init();
+await Application.open('Login');
 ```
 
 ## ⚙️ Comandos

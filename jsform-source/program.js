@@ -23,8 +23,20 @@ class Program {
         // Aquí es donde lanzarás tu primer formulario, equivalente a: 
         // Application.Run(new Form1()); en WinForms.
         // ==========================================
+
+        // Opcional: Registrar un Navigation Guard (Middleware de seguridad para rutas y botón Atrás):
+        // Application.setNavigationGuard(async (toView, fromController) => {
+        //     const publicViews = ['Login', 'Register'];
+        //     const isAuthenticated = !!localStorage.getItem('auth_token');
+        //     if (!publicViews.includes(toView) && !isAuthenticated) {
+        //         return 'Login'; // Redirige automáticamente antes de tocar el DOM
+        //     }
+        //     return true;
+        // });
         
-        // Ejemplo de cómo se verá cuando crees tu módulo de Login:
+        // Navegar a tu vista inicial (usando Application.open por nombre o Application.run con la clase):
+        // await Application.open('Login');
+        // o:
         // import { LoginController } from './forms/Login/login.controller.js';
         // await Application.run('login', LoginController);
     }

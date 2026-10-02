@@ -45,6 +45,16 @@ export class HttpClient {
         return this._request('DELETE', endpoint, null, options);
     }
 
+    /**
+     * Realiza una petición PATCH.
+     * @param {string} endpoint - El endpoint de la API.
+     * @param {object} [data] - El objeto de datos a enviar en el body (opcional).
+     * @param {object} [options] - Opciones de la petición, incluyendo callbacks.
+     */
+    static patch(endpoint, data = null, options = {}) {
+        return this._request('PATCH', endpoint, data, options);
+    }
+
     static _globalErrorHandler = null;
     static _validateResponse = null;
 

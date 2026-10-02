@@ -26,17 +26,66 @@ export class Application {
     // Referencia al ID del contenedor de la vista actual
     static _currentViewTargetId = null;
 
+    // NAVIGATION GUARD: Middleware global para protección de rutas y control de sesión
+    static _navigationGuard = null;
+
     /**
-     * Initializes the application and sets up browser history listening.
+     * Registra un interceptor o guard global de navegación antes de renderizar vistas.
+     * @param {function} guardFn - async (toView, fromController) => boolean | string (ruta de redirección)
+     */
+    static setNavigationGuard(guardFn) {
+        this._navigationGuard = typeof guardFn === 'function' ? guardFn : null;
+    }
+
+    /**
+     * Initializes the application and sets up browser history and bfcache listening.
      */
     static async init() {
         // MEJORA 2: Escuchamos cuando el usuario presiona "Atrás" o "Adelante" en el navegador
         window.addEventListener('popstate', async (event) => {
             if (event.state && event.state.form) {
-                const routeInfo = this._routes[event.state.form];
+                const targetForm = event.state.form;
+
+                // 1. Verificación previa con Navigation Guard (evita inyectar HTML en el DOM si no hay sesión)
+                if (typeof this._navigationGuard === 'function') {
+                    const allowed = await this._navigationGuard(targetForm, this._currentController);
+                    if (allowed === false || (typeof allowed === 'string' && allowed !== targetForm)) {
+                        const redirectView = typeof allowed === 'string' ? allowed : (this.AppConfig.router?.loginView || 'Login');
+                        console.warn(`[JSForm NavigationGuard] 🛑 Bloqueada navegación 'Atrás' hacia '${targetForm}'. Redirigiendo a '${redirectView}'...`);
+                        
+                        // Sobrescribir historial para evitar bucles o vistas fantasma
+                        const targetId = event.state.target || this.AppConfig.router.defaultTarget;
+                        const newUrl = `${this.AppConfig.router.basePath}/${redirectView}`;
+                        window.history.replaceState({ form: redirectView, target: targetId }, "", newUrl);
+
+                        await this.open(redirectView);
+                        return;
+                    }
+                }
+
+                const routeInfo = this._routes[targetForm];
                 if (routeInfo) {
                     // Volvemos a cargar la vista anterior pero sin empujarla al historial de nuevo
-                    await this.run(event.state.form, routeInfo.ControllerClass, event.state.target, null);
+                    await this.run(targetForm, routeInfo.ControllerClass, event.state.target, null);
+                } else {
+                    await this.open(targetForm);
+                }
+            }
+        });
+
+        // Soporte para bfcache (Back-Forward Cache): si el navegador restaura un snapshot congelado en memoria
+        window.addEventListener('pageshow', async (event) => {
+            if (event.persisted && typeof this._navigationGuard === 'function') {
+                const currentForm = window.history.state?.form;
+                if (currentForm) {
+                    const allowed = await this._navigationGuard(currentForm, this._currentController);
+                    if (allowed === false || (typeof allowed === 'string' && allowed !== currentForm)) {
+                        const redirectView = typeof allowed === 'string' ? allowed : (this.AppConfig.router?.loginView || 'Login');
+                        console.warn(`[JSForm bfcache] 🛑 Restauración de caché bloqueada para '${currentForm}'. Redirigiendo a '${redirectView}'...`);
+                        const targetId = window.history.state?.target || this.AppConfig.router.defaultTarget;
+                        window.history.replaceState({ form: redirectView, target: targetId }, "", `${this.AppConfig.router.basePath}/${redirectView}`);
+                        await this.open(redirectView);
+                    }
                 }
             }
         });
@@ -56,6 +105,55 @@ export class Application {
     }
 
     /**
+     * Abre y navega a una vista por su nombre, resolviendo dinámicamente el controlador si no ha sido registrado.
+     * @param {string} viewName - El nombre de la vista/formulario (ej. 'Dashboard', 'Login').
+     * @param {object} [parameters=null] - Parámetros opcionales a pasar al controlador.
+     * @returns {Promise<object|null>} Instancia del controlador creado.
+     */
+    static async open(viewName, parameters = null) {
+        const route = this._routes[viewName];
+        if (route && route.ControllerClass) {
+            return await this.run(viewName, route.ControllerClass, null, parameters);
+        }
+
+        // Resolución dinámica por convención: /app/forms/[View]/[View].controller.js
+        const folderName = viewName;
+        const fileName = viewName;
+        const classNamePrefix = folderName.charAt(0).toUpperCase() + folderName.slice(1);
+        const modulePath = `/app/forms/${folderName}/${fileName}.controller.js`;
+
+        try {
+            const module = await import(modulePath);
+            const ControllerClass = module[`${classNamePrefix}Controller`];
+            if (!ControllerClass) {
+                throw new Error(`No se encontró la clase exportada '${classNamePrefix}Controller' en el módulo '${modulePath}'`);
+            }
+            return await this.run(viewName, ControllerClass, null, parameters);
+        } catch (e) {
+            console.error(`[JSForm] ❌ Error en Application.open('${viewName}'):`, e);
+            const target = this._currentViewTargetId || this.AppConfig.router.defaultTarget;
+            const rootContainer = document.getElementById(target);
+            if (rootContainer) {
+                await this._showErrorPage(rootContainer, 510, null, {
+                    view: viewName,
+                    error: e,
+                    modulePath
+                });
+            }
+            return null;
+        }
+    }
+
+    /**
+     * Alias de Application.open para navegación desacoplada SPA.
+     * @param {string} viewName - Nombre de la vista (ej. 'Login', 'Dashboard').
+     * @param {object} [parameters=null] - Parámetros a enviar al controlador.
+     */
+    static async navigate(viewName, parameters = null) {
+        return await this.open(viewName, parameters);
+    }
+
+    /**
      * Fetches an HTML view, injects it into the DOM, and instantiates its controller.
      * @param {string} viewName - The name of the view/folder (e.g., 'login').
      * @param {class} ControllerClass - The controller class to instantiate.
@@ -64,6 +162,24 @@ export class Application {
      * @returns {Promise<object>} The instantiated controller.
      */
     static async run(viewName, ControllerClass, targetId = null, parameters = null) {
+        // ==========================================
+        // 0. VERIFICACIÓN DEL NAVIGATION GUARD
+        // Se ejecuta ANTES de evaluar layouts o inyectar cualquier HTML en el DOM.
+        // ==========================================
+        if (typeof this._navigationGuard === 'function') {
+            const guardResult = await this._navigationGuard(viewName, this._currentController);
+            if (guardResult === false) {
+                console.warn(`[JSForm NavigationGuard] 🛑 Acceso a '${viewName}' denegado por el Navigation Guard.`);
+                return null;
+            }
+            if (typeof guardResult === 'string' && guardResult !== viewName) {
+                console.log(`[JSForm NavigationGuard] 🔄 Redirigiendo navegación de '${viewName}' a '${guardResult}'...`);
+                const target = targetId || this.AppConfig.router.defaultTarget;
+                window.history.replaceState({ form: guardResult, target }, "", `${this.AppConfig.router.basePath}/${guardResult}`);
+                return await this.open(guardResult, parameters);
+            }
+        }
+
         // ==========================================
         // AUTO-ROUTING EN DESARROLLO (Hot Reload Support)
         // Permite recargar la página en la vista actual en lugar de volver al inicio.
@@ -81,6 +197,18 @@ export class Application {
 
             if (requestedView && requestedView !== 'index.html' && requestedView.toLowerCase() !== viewName.toLowerCase()) {
                 console.log(`[JSForm] 🔍 Detectada ruta en URL: '${requestedView}'. Intentando restaurar sesión...`);
+
+                // Consultar navigation guard antes de restaurar rutas protegidas desde la URL
+                if (typeof this._navigationGuard === 'function') {
+                    const allowed = await this._navigationGuard(requestedView, null);
+                    if (allowed === false || (typeof allowed === 'string' && allowed !== requestedView)) {
+                        const redirectView = typeof allowed === 'string' ? allowed : viewName;
+                        console.warn(`[JSForm NavigationGuard] 🛑 Auto-routing bloqueado para '${requestedView}'. Redirigiendo a '${redirectView}'...`);
+                        const target = targetId || this.AppConfig.router.defaultTarget;
+                        window.history.replaceState({ form: redirectView, target }, "", `${this.AppConfig.router.basePath}/${redirectView}`);
+                        return await this.open(redirectView, parameters);
+                    }
+                }
                 
                 const folderName = requestedView;
                 const fileName = requestedView;
