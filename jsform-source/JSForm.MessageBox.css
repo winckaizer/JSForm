@@ -138,3 +138,83 @@
 .jsform-messagebox-icon.icon-none {
     display: none;
 }
+
+/* ==========================================
+   Botones con Clases Explícitas
+   ========================================== */
+.jsform-messagebox-button.jsform-btn-primary {
+    background-color: #007bff;
+    color: #fff;
+    border-color: #007bff;
+}
+
+.jsform-messagebox-button.jsform-btn-primary:hover {
+    background-color: #0056b3;
+    border-color: #0056b3;
+}
+
+.jsform-messagebox-button.jsform-btn-secondary {
+    background-color: #fff;
+    color: #495057;
+    border-color: #ccc;
+}
+
+.jsform-messagebox-button.jsform-btn-secondary:hover {
+    background-color: #f0f0f0;
+    border-color: #bbb;
+}
+
+/* ==========================================
+   Estilos de MessageBox.prompt
+   ========================================== */
+.jsform-messagebox-window.jsform-messagebox-prompt {
+    min-width: 380px;
+}
+
+.jsform-messagebox-body.jsform-messagebox-body-prompt {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+}
+
+.jsform-prompt-message-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.jsform-prompt-label {
+    margin: 0;
+    font-size: 14px;
+    color: #333;
+    line-height: 1.4;
+    flex-grow: 1;
+}
+
+.jsform-prompt-input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 9px 12px;
+    font-size: 14px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    background-color: #fff;
+    color: #212529;
+    outline: none;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.jsform-prompt-input:focus {
+    border-color: #80bdff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.jsform-prompt-input.is-invalid {
+    border-color: #dc3545;
+}
+
+.jsform-prompt-input.is-invalid:focus {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}

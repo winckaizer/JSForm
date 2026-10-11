@@ -215,6 +215,21 @@ async btnBorrar_click() {
         console.log('El usuario canceló la operación.');
     }
 }
+
+// Solicitar entrada de datos al usuario (Reemplazo asíncrono y elegante de window.prompt)
+async btnPedirMotivo_click() {
+    const motivo = await MessageBox.prompt('Anular Registro', 'Ingrese el motivo de la anulación:', '', {
+        placeholder: 'Ej: Factura duplicada',
+        required: true,
+        icon: MessageBox.Icon.Question
+    });
+
+    if (motivo !== null) {
+        console.log('Motivo ingresado:', motivo);
+    } else {
+        console.log('El usuario canceló la solicitud');
+    }
+}
 </code></pre>
 
         <h3>JSForm.DataGridView</h3>

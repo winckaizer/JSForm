@@ -123,6 +123,25 @@ async btnBorrar_click() {
 }
 ```
 
+#### Cuadros de Entrada de Texto (`MessageBox.prompt`)
+
+Solicita entradas de texto al usuario de forma asíncrona, no bloqueante y con estilo visual integrado, reemplazando el `window.prompt()` nativo:
+
+```javascript
+// Solicitar un dato o motivo con validación:
+const motivo = await MessageBox.prompt('Anular Factura', 'Ingrese el motivo de anulación:', '', {
+    placeholder: 'Ej: Factura duplicada o error de monto',
+    required: true,
+    inputType: 'text' // 'text' | 'password' | 'email' | 'number'
+});
+
+if (motivo !== null) {
+    console.log('Motivo confirmado:', motivo);
+} else {
+    console.log('Operación cancelada por el usuario');
+}
+```
+
 ### DataGridView
 
 Componente nativo de tabla de datos en Vanilla JS (cero dependencias externas). Soporta columnas configurables, renderers personalizados, ordenación, altura fija con scroll, buscador universal (con soporte `searchOnEnter`), internacionalización reactiva (`i18n`), selector de filas integrado en el pie de página junto al contador de registros, y paginación en memoria o remota conectada a tu Backend.

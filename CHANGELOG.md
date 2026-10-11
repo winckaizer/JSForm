@@ -5,6 +5,24 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 
 ---
 
+## [1.3.9] - 2026-10-11
+
+### 💬 Diálogo Modal de Entrada (`MessageBox.prompt`)
+* **Entrada de Datos Asíncrona y Estilizada:**
+  * Se implementó el método estático `MessageBox.prompt(title, message, defaultValue, options)` en `core/JSForm.MessageBox.js` como alternativa moderna, no bloqueante y visualmente integrada a `window.prompt()`.
+  * Retorna una `Promise<string|null>` que resuelve con el texto introducido al confirmar o `null` si el usuario cancela o cierra el diálogo.
+* **Opciones y Validación:**
+  * Soporta `inputType` (`text`, `password`, `email`, `number`), `placeholder`, `defaultValue`, `okText`, `cancelText`, `icon` y validación `required` con resaltado `.is-invalid` en tiempo real.
+* **Ergonomía de Teclado y UX:**
+  * Soporte nativo para confirmar con `Enter` y cancelar con `Escape`.
+  * Enfoque automático y selección del texto inicial al abrir.
+  * Ventana completamente arrastrable (`makeDraggable`).
+* **Estilos y Clases de Botones (`JSForm.MessageBox.css`):**
+  * Clases explícitas `.jsform-btn-primary` y `.jsform-btn-secondary` para desacoplar el orden de botones en el footer del selector `:first-child`.
+  * Estilos adaptables para `.jsform-prompt-input`, estados de foco y validación.
+
+---
+
 ## [1.3.8] - 2026-10-02
 
 ### 🌐 Soporte para Método HTTP PATCH (`HttpClient.patch`)

@@ -102,6 +102,139 @@ export class MessageBox {
     }
 
     /**
+     * Muestra un cuadro de diálogo con campo de entrada de texto y espera la interacción del usuario.
+     * @param {string} title - El texto de la cabecera del diálogo.
+     * @param {string} message - El mensaje descriptivo o instrucción.
+     * @param {string} [defaultValue=''] - Valor inicial precargado en el campo de texto.
+     * @param {object} [options={}] - Opciones adicionales de configuración:
+     *    - placeholder: {string} Texto de ayuda en el input.
+     *    - inputType: {string} 'text' | 'password' | 'email' | 'number' (por defecto 'text').
+     *    - required: {boolean} Si es true, el campo no permite aceptar vacío.
+     *    - okText: {string} Texto del botón de confirmación (por defecto 'Aceptar').
+     *    - cancelText: {string} Texto del botón de cancelación (por defecto 'Cancelar').
+     *    - icon: {MessageBox.Icon} Icono opcional a mostrar junto al mensaje.
+     * @returns {Promise<string|null>} Resuelve con el string ingresado al presionar 'Aceptar', o null si cancela o cierra.
+     */
+    static prompt(title, message, defaultValue = '', options = {}) {
+        return new Promise(resolve => {
+            const inputType = options.inputType || 'text';
+            const placeholder = options.placeholder || '';
+            const required = options.required || false;
+            const okText = options.okText || 'Aceptar';
+            const cancelText = options.cancelText || 'Cancelar';
+            const icon = options.icon || MessageBox.Icon.None;
+
+            const overlay = document.createElement('div');
+            overlay.className = 'jsform-messagebox-overlay';
+
+            const dialog = document.createElement('div');
+            dialog.className = 'jsform-messagebox-window jsform-messagebox-prompt';
+
+            const header = document.createElement('div');
+            header.className = 'jsform-messagebox-header';
+            header.innerHTML = `<span>${title}</span>`;
+
+            const body = document.createElement('div');
+            body.className = 'jsform-messagebox-body jsform-messagebox-body-prompt';
+
+            let iconHtml = '';
+            if (icon && icon !== MessageBox.Icon.None) {
+                iconHtml = `<div class="jsform-messagebox-icon icon-${icon}"></div>`;
+            }
+
+            const messageRow = document.createElement('div');
+            messageRow.className = 'jsform-prompt-message-row';
+            messageRow.innerHTML = `${iconHtml}<p class="jsform-prompt-label">${message}</p>`;
+
+            const input = document.createElement('input');
+            input.type = inputType;
+            input.className = 'jsform-prompt-input';
+            input.value = defaultValue;
+            input.placeholder = placeholder;
+            input.autocomplete = 'off';
+
+            body.appendChild(messageRow);
+            body.appendChild(input);
+
+            const footer = document.createElement('div');
+            footer.className = 'jsform-messagebox-footer';
+
+            const closeDialog = (result) => {
+                if (overlay.parentNode) {
+                    overlay.parentNode.removeChild(overlay);
+                }
+                resolve(result);
+            };
+
+            const handleAccept = () => {
+                const val = input.value.trim();
+                if (required && !val) {
+                    input.focus();
+                    input.classList.add('is-invalid');
+                    return;
+                }
+                closeDialog(input.value);
+            };
+
+            // Botón Cancelar
+            const btnCancel = new Control('button', 'msgbox-prompt-btn-cancel', {
+                text: cancelText,
+                className: 'jsform-messagebox-button jsform-btn-secondary',
+                events: {
+                    click: () => closeDialog(null)
+                }
+            });
+
+            // Botón Aceptar
+            const btnOk = new Control('button', 'msgbox-prompt-btn-ok', {
+                text: okText,
+                className: 'jsform-messagebox-button jsform-btn-primary',
+                events: {
+                    click: handleAccept
+                }
+            });
+
+            input.addEventListener('input', () => {
+                if (input.classList.contains('is-invalid') && input.value.trim()) {
+                    input.classList.remove('is-invalid');
+                }
+            });
+
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAccept();
+                } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    closeDialog(null);
+                }
+            });
+
+            btnCancel.renderTo(footer);
+            btnOk.renderTo(footer);
+
+            dialog.appendChild(header);
+            dialog.appendChild(body);
+            dialog.appendChild(footer);
+            overlay.appendChild(dialog);
+            document.body.appendChild(overlay);
+
+            // Centrar el diálogo inicial
+            dialog.style.left = `calc(50% - ${dialog.offsetWidth / 2}px)`;
+            dialog.style.top = `calc(50% - ${dialog.offsetHeight / 2}px)`;
+            dialog.style.left = dialog.offsetLeft + "px";
+            dialog.style.top = dialog.offsetTop + "px";
+
+            this.makeDraggable(dialog, header);
+
+            setTimeout(() => {
+                input.focus();
+                if (defaultValue) input.select();
+            }, 50);
+        });
+    }
+
+    /**
      * Hace que un elemento sea arrastrable por su cabecera.
      * @param {HTMLElement} element - El elemento a mover.
      * @param {HTMLElement} handle - El área desde donde se puede arrastrar.
