@@ -5,6 +5,18 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 
 ---
 
+## [1.3.10] - 2026-10-15
+
+### ⚡ Motor de Reflexión y Auto-Delegación de Eventos (`compiler.js`)
+* **Soporte para Herencia de Controladores (POO):**
+  * `autoBindEvents()` ahora recorre la cadena completa de prototipos de la clase (`while (currentProto && currentProto !== Object.prototype)`), permitiendo que controladores que extiendan de clases base (ej. `BaseCRUDController`, `BaseModuleController`) conserven la vinculación automática de todos sus eventos heredados.
+* **Resolución Flexible de Clases CSS:**
+  * La delegación por convención `cls_xxx` ahora busca coincidentes contra `.` + targetName (`.cls_btn_accion`), además de `.kebab-case` (`.btn-accion`) y `.snake_case` (`.btn_accion`), evitando fallas cuando el elemento HTML lleva la clase literal con el prefijo `cls_`.
+* **Resolución de Elementos Hijos e Inline:**
+  * Garantiza que el segundo argumento `targetElement` recibido en los controladores (`this[method](e, targetElement)`) corresponda siempre al elemento anfitrión contenedor al pulsar sobre iconos internos, svgs o etiquetas `<span>`.
+
+---
+
 ## [1.3.9] - 2026-10-11
 
 ### 💬 Diálogo Modal de Entrada (`MessageBox.prompt`)

@@ -39,7 +39,8 @@ export class LoginController extends LoginDesigner {
 *   **Propiedades Vivas (Getters + Proxy Híbrido)**: Mapeo automático de elementos por ID con autocompletado en tu editor (IntelliSense) y soporte para elementos inyectados dinámicamente con JavaScript.
 *   **Auto-Binding de Eventos con Delegación**: Enlaza eventos del DOM a métodos del controlador por convención de nombres. Gracias a la delegación de eventos, funcionan siempre, incluso si los elementos se inyectan o reemplazan dinámicamente después.
     *   **Por ID:** `btnGuardar_click(e, el)` se enlaza a `<button id="btnGuardar">`.
-    *   **Por Clase:** `cls_menu_item_click(e, el)` se enlaza a `<div class="menu-item">`, enviando el elemento específico como segundo parámetro.
+    *   **Por Clase:** `cls_menu_item_click(e, el)` se enlaza a `<div class="menu-item">`, `.menu_item` o `.cls_menu_item`, enviando el elemento específico como segundo parámetro (incluso si se hace clic sobre elementos hijos como iconos o spans).
+    *   **Soporte para Herencia (POO):** Reconoce automáticamente métodos de eventos declarados en clases base (ej. `BaseCRUDController`), recorriendo la jerarquía completa de prototipos.
 *   **Selector Integrado (`this.query`)**: Selecciona múltiples elementos de forma nativa dentro de tu vista. Funciona como un `$('.clase')` de jQuery pero devuelve un `Array` puro de Vanilla JS, restringido al DOM de tu componente actual.
 *   **Componentes Reutilizables**: Incluye `MessageBox`, `DataGridView` (tabla de datos nativa con paginación local y remota) y un `HttpClient`.
 *   **Compilación para Producción**: Integrado con Vite para empaquetar, minificar y ofuscar tu aplicación con `npm run build`.

@@ -112,7 +112,15 @@ export class ${className}Designer {
     // JSFORM AUTO-BINDING ENGINE (Reflection & Event Delegation)
     // ==========================================
     autoBindEvents() {
-        const methods = Object.getOwnPropertyNames(Object.getPrototypeOf(this));
+        let currentProto = Object.getPrototypeOf(this);
+        const methods = new Set();
+        while (currentProto && currentProto !== Object.prototype) {
+            Object.getOwnPropertyNames(currentProto).forEach(m => {
+                if (m !== 'constructor') methods.add(m);
+            });
+            currentProto = Object.getPrototypeOf(currentProto);
+        }
+
         const rootElement = document.getElementById('${baseName}Panel') || document;
         methods.forEach(method => {
             if (method.includes('_') && !method.startsWith('_')) {
@@ -124,12 +132,14 @@ export class ${className}Designer {
                     const rawClassName = targetName.substring(4);
                     const className = rawClassName.replace(/_/g, '-');
                     rootElement.addEventListener(eventType, (e) => {
-                        const targetElement = e.target.closest('.' + className) || e.target.closest('.' + rawClassName);
+                        const targetElement = e.target.closest('.' + targetName) || 
+                                              e.target.closest('.' + className) || 
+                                              e.target.closest('.' + rawClassName);
                         if (targetElement && (rootElement === document || rootElement.contains(targetElement))) {
                             this[method](e, targetElement);
                         }
                     });
-                    console.log(\`[JSForm AutoBind Class - Delegated] .\${className} -> \${eventType}\`);
+                    console.log(\`[JSForm AutoBind Class - Delegated] .\${targetName} / .\${className} -> \${eventType}\`);
                 } else if (typeof this[method] === 'function') {
                     const kebabTargetName = targetName.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
                     rootElement.addEventListener(eventType, (e) => {
@@ -250,7 +260,14 @@ function generateDesigner(htmlPath) {
         jsCode += `    // JSFORM AUTO-BINDING ENGINE (Reflection & Event Delegation)\n`;
         jsCode += `    // ==========================================\n`;
         jsCode += `    autoBindEvents() {\n`;
-        jsCode += `        const methods = Object.getOwnPropertyNames(Object.getPrototypeOf(this));\n`;
+        jsCode += `        let currentProto = Object.getPrototypeOf(this);\n`;
+        jsCode += `        const methods = new Set();\n`;
+        jsCode += `        while (currentProto && currentProto !== Object.prototype) {\n`;
+        jsCode += `            Object.getOwnPropertyNames(currentProto).forEach(m => {\n`;
+        jsCode += `                if (m !== 'constructor') methods.add(m);\n`;
+        jsCode += `            });\n`;
+        jsCode += `            currentProto = Object.getPrototypeOf(currentProto);\n`;
+        jsCode += `        }\n\n`;
         jsCode += `        const rootElement = document.getElementById('${rootId}') || document;\n`;
         jsCode += `        methods.forEach(method => {\n`;
         jsCode += `            if (method.includes('_') && !method.startsWith('_')) {\n`;
@@ -261,12 +278,14 @@ function generateDesigner(htmlPath) {
         jsCode += `                    const rawClassName = targetName.substring(4);\n`;
         jsCode += `                    const className = rawClassName.replace(/_/g, '-');\n`;
         jsCode += `                    rootElement.addEventListener(eventType, (e) => {\n`;
-        jsCode += `                        const targetElement = e.target.closest('.' + className) || e.target.closest('.' + rawClassName);\n`;
+        jsCode += `                        const targetElement = e.target.closest('.' + targetName) || \n`;
+        jsCode += `                                              e.target.closest('.' + className) || \n`;
+        jsCode += `                                              e.target.closest('.' + rawClassName);\n`;
         jsCode += `                        if (targetElement && (rootElement === document || rootElement.contains(targetElement))) {\n`;
         jsCode += `                            this[method](e, targetElement);\n`;
         jsCode += `                        }\n`;
         jsCode += `                    });\n`;
-        jsCode += `                    console.log(\`[JSForm AutoBind Class - Delegated] .\${className} -> \${eventType}\`);\n`;
+        jsCode += `                    console.log(\`[JSForm AutoBind Class - Delegated] .\${targetName} / .\${className} -> \${eventType}\`);\n`;
         jsCode += `                } else if (typeof this[method] === 'function') {\n`;
         jsCode += `                    const kebabTargetName = targetName.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();\n`;
         jsCode += `                    rootElement.addEventListener(eventType, (e) => {\n`;
