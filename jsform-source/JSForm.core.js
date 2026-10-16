@@ -1,6 +1,7 @@
 // core/JSForm.Core.js
 import Config from '../jsform.config.js';
 import { i18n } from './JSForm.i18n.js';
+import { Logger } from './JSForm.Logger.js';
 
 /**
  * Main Application class responsible for rendering views and handling routing.
@@ -9,6 +10,7 @@ import { i18n } from './JSForm.i18n.js';
 export class Application {
     
     static AppConfig = Config;
+    static Logger = Logger;
     
     // MEJORA 1: Guardamos una referencia al controlador actual
     static _currentController = null;
@@ -41,6 +43,9 @@ export class Application {
      * Initializes the application and sets up browser history and bfcache listening.
      */
     static async init() {
+        // 0. Inicializar Logger y Sanitización de Seguridad de forma prioritaria (OWASP Top 10)
+        Logger.init(this.AppConfig);
+
         // MEJORA 2: Escuchamos cuando el usuario presiona "Atrás" o "Adelante" en el navegador
         window.addEventListener('popstate', async (event) => {
             if (event.state && event.state.form) {
@@ -493,3 +498,5 @@ export class Application {
         }
     }
 }
+
+export { Logger };

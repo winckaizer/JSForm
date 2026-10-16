@@ -5,6 +5,28 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 
 ---
 
+## [1.3.11] - 2026-10-16
+
+### 🛡️ Seguridad y Módulo Core `JSForm.Logger` (OWASP Top 10)
+* **Nuevo Módulo `core/JSForm.Logger.js`:**
+  * Implementación de la clase singleton `Logger` con intercepción transparente y no destructiva de `window.console` (`log`, `info`, `debug`, `warn`, `error`).
+  * Conserva las funciones originales en `Logger._nativeConsole` y provee `Logger.restore()` para restablecer la consola si se requiere.
+* **Sanitización Recursiva Profunda (`Logger.sanitize`):**
+  * Enmascaramiento automático de claves sensibles (`password`, `token`, `secret`, `jwt`, `cvv`, `pin`, `creditcard`, `authorization`, etc.) reemplazándolas por `[PROTECTED]`.
+  * Detección y enmascaramiento de cadenas con formato de tokens JWT (`ey...`) y cabeceras `Bearer ey...`.
+  * Protección contra referencias circulares mediante `WeakSet`.
+  * Tratamiento especial para instancias de `Error`: preserva propiedades nativas (`name`, `message`, `stack`) mientras sanitiza propiedades adicionales adjuntas (ej. `err.data`).
+  * Omisión de nodos del DOM (`HTMLElement`) para evitar iteraciones masivas de propiedades en el navegador.
+* **Control por Entorno (`environment`):**
+  * En entorno de producción (`environment === 'production'`), silencia automáticamente logs informativos (`log`, `info`, `debug`) y permite únicamente advertencias y errores (`warn`, `error`), siempre sanitizados.
+  * En desarrollo (`environment === 'development'`), permite todos los niveles de log aplicando sanitización continua.
+* **Integración en el Núcleo:**
+  * Conectado automáticamente como primerísima instrucción en `Application.init()` (`core/JSForm.Core.js`), blindando todas las aplicaciones por defecto sin requerir cambios en el código existente.
+  * Configuración extensible en `jsform.config.js` bajo la sección `security` (`sanitizeLogs`, `sensitiveKeys`, `maskString`).
+  * Incorporado en el empaquetado del CLI (`scripts/build-fw.js`) y en la distribución/actualización (`bin/index.js`).
+
+---
+
 ## [1.3.10] - 2026-10-15
 
 ### ⚡ Motor de Reflexión y Auto-Delegación de Eventos (`compiler.js`)

@@ -49,6 +49,7 @@ export class LoginController extends LoginDesigner {
 *   **Internacionalización (i18n)**: Soporte integrado para múltiples idiomas de forma declarativa.
 *   **Gestor de Estado Global**: Un `State` manager simple y reactivo para compartir datos entre componentes.
 *   **Manejo de Errores**: Muestra páginas de error personalizables (400, 404, 500, 510) automáticamente ante fallos de carga o excepciones en controladores (con vista detallada de stack trace y sin redirecciones ciegas) o manualmente desde tus controladores con `Application.showError(status)`.
+*   **Seguridad y Sanitización de Logs (OWASP Top 10)**: Intercepta `window.console` de forma transparente y no destructiva mediante `JSForm.Logger`, protegiendo automáticamente datos sensibles (contraseñas, tokens JWT, CVV, tarjetas) y silenciando logs informativos en entornos de producción.
 *   **Cero Dependencias (en el cliente)**: El framework en sí es Vanilla JS puro. Los componentes pueden cargar librerías de terceros bajo demanda.
 
 ## 📦 Instalación
@@ -424,6 +425,52 @@ Application.setNavigationGuard(async (toView, fromController) => {
 
 await Application.init();
 await Application.open('Login');
+```
+
+### JSForm.Logger (Seguridad OWASP Top 10)
+
+El módulo `JSForm.Logger` protege la aplicación contra fugas inadvertidas de datos sensibles en la consola de depuración del navegador (OWASP A02:2021 y A09:2021). Se inicializa automáticamente al ejecutar `Application.init()`.
+
+* **Parche Transparente:** Sustituye de forma no destructiva los métodos estándar `console.log`, `console.info`, `console.debug`, `console.warn` y `console.error`. Los desarrolladores pueden seguir utilizando `console.log(...)` con normalidad.
+* **Sanitización Recursiva Profunda:** Detecta objetos anidados, arrays y cadenas de texto. Cualquier clave o propiedad sensible (`password`, `token`, `secret`, `jwt`, `cvv`, `pin`, `creditcard`, `authorization`, etc.) se reemplaza automáticamente por `[PROTECTED]`.
+* **Protección de Tokens JWT:** Cualquier cadena que coincida con la estructura de un token JWT (`ey...`) o cabecera `Bearer ey...` se enmascara de inmediato.
+* **Detección de Ciclos y Preservación de Errores:** Utiliza `WeakSet` para evitar bucles infinitos en referencias circulares y preserva los `Error` nativos con su `stack trace` intacto en DevTools mientras sanitiza datos adicionales adjuntos (como `err.data`).
+* **Control por Entorno:**
+  * En **`production`**: `console.log`, `console.info` y `console.debug` se silencian por completo para evitar sobrecarga y fugas en clientes finales. Únicamente se permiten `warn` y `error` (siempre sanitizados).
+  * En **`development`**: Se muestran todos los niveles de log para facilitar el debugging, pero siempre sanitizados.
+
+#### Configuración en `jsform.config.js`:
+
+```javascript
+// jsform.config.js
+export default {
+    environment: 'development', // o 'production'
+
+    security: {
+        sanitizeLogs: true,
+        sensitiveKeys: [
+            'password', 'passwd', 'contrasena', 'contraseña', 'clave',
+            'token', 'jwt', 'secret', 'authorization', 'auth',
+            'cvv', 'pin', 'creditcard', 'tarjeta'
+        ],
+        maskString: '[PROTECTED]'
+    }
+};
+```
+
+#### Uso Directo o Extensión:
+
+```javascript
+import { Logger } from '../../core/JSForm.Logger.js';
+
+// Agregar claves sensibles adicionales en tiempo de ejecución:
+Logger.addSensitiveKeys(['apiKey', 'ssn', 'cuentaBancaria']);
+
+// Sanitizar datos manualmente si se desea:
+const datosLimpios = Logger.sanitize(datosUsuario);
+
+// Restablecer la consola original en caso de ser necesario:
+// Logger.restore();
 ```
 
 ## ⚙️ Comandos

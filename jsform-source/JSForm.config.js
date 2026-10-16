@@ -85,5 +85,23 @@ export default {
         i18n: {
             path: '/app/i18n' // Ruta a la carpeta con los archivos de idioma (ej. es.json, en.json)
         }
+    },
+
+    // ==========================================
+    // 5. CONFIGURACIÓN DE SEGURIDAD Y LOGS (OWASP Top 10)
+    // ==========================================
+    security: {
+        // Activa la sanitización recursiva de datos sensibles en la consola
+        sanitizeLogs: true,
+
+        // Lista de claves a enmascarar automáticamente (insensible a mayúsculas y formato camelCase/snake_case)
+        sensitiveKeys: [
+            'password', 'passwd', 'contrasena', 'contraseña', 'clave',
+            'token', 'jwt', 'secret', 'authorization', 'auth',
+            'cvv', 'pin', 'creditcard', 'tarjeta'
+        ],
+
+        // Texto de reemplazo para los datos sensibles enmascarados
+        maskString: '[PROTECTED]'
     }
 };

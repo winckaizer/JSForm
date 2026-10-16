@@ -18,6 +18,7 @@ const filesToBundle = [
     'JSForm.DataGridView.js',
     'JSForm.DataGridView.css',
     'JSForm.HttpClient.js',
+    'JSForm.Logger.js',
     'template.index.html',
     'template.main.css',
     'template.jsform-help-me.html',

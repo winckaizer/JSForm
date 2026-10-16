@@ -26,6 +26,7 @@ const fileRouting = {
     'jsform.datagridview.js': 'core/JSForm.DataGridView.js',
     'jsform.datagridview.css': 'assets/css/JSForm.DataGridView.css',
     'jsform.httpclient.js': 'core/JSForm.HttpClient.js',
+    'jsform.logger.js': 'core/JSForm.Logger.js',
     'template.index.html': 'index.html',
     'template.main.css': 'assets/css/main.css',
     'template.jsform-help-me.html': 'jsform-help-me.html',
@@ -224,6 +225,7 @@ else if (command === 'update') {
         'jsform.datagridview.js',
         'jsform.datagridview.css',
         'jsform.httpclient.js',
+        'jsform.logger.js',
         'jsform.i18n.js', // Añadido para la funcionalidad de i18n
         '400.html',
         '404.html',
