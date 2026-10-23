@@ -385,46 +385,129 @@ HttpClient.get('/ping', {
 });
 ```
 
-### Navegación y Navigation Guards
+### Navegación, Rutas Declarativas y Navigation Guards
 
-JSForm ofrece navegación desacoplada y protección global de rutas para evitar fugas de información o vistas fantasma tras cerrar sesión:
+JSForm ofrece un sistema de enrutamiento desacoplado, catálogo declarativo de rutas con metadatos y protección global de navegación:
 
-#### Navegación Desacoplada (`Application.open` / `Application.navigate`)
+#### Navegación Desacoplada (`Application.open` / `Application.navigate` / `Application.navigateToForm`)
 
-Puedes cambiar de vista pasando simplemente el nombre del formulario, sin necesidad de importar manualmente las clases de los controladores:
+Puedes cambiar de vista pasando simplemente el nombre del formulario o un path registrado, sin necesidad de importar manualmente las clases de los controladores:
 
 ```javascript
 import { Application } from '../../core/JSForm.Core.js';
 
-// En un evento o botón:
+// Navegación por nombre o path con parámetros:
 btnIrDashboard_click() {
     Application.open('Dashboard', { usuarioId: 45 }); 
-    // o con el alias:
-    // Application.navigate('Dashboard');
+    // o por path registrado:
+    // Application.navigate('/facturacion');
+    // o con el alias tradicional:
+    // Application.navigateToForm('Dashboard');
 }
 ```
 
-#### Guards de Navegación (`Application.setNavigationGuard`)
+#### Catálogo Declarativo de Rutas (`Application.registerRoutes`)
 
-Registra un middleware de seguridad en `program.js` que se ejecutará **antes** de cargar el layout o inyectar cualquier HTML en el DOM. Si el usuario cierra sesión y pulsa el botón **"Atrás"** del navegador, el guard bloquea la navegación hacia la vista protegida, sobrescribe el historial con `replaceState` y redirige a la vista segura:
+Permite estructurar las rutas de la aplicación asociando metadatos para control de acceso basado en roles (RBAC), módulos contratados (SaaS multi-tenant) y títulos de página:
 
 ```javascript
 // app/program.js
 import { Application } from '../core/JSForm.Core.js';
 
-// Registrar Guard de Seguridad
-Application.setNavigationGuard(async (toView, fromController) => {
-    const rutasPublicas = ['Login', 'Registro', 'RecuperarClave'];
-    const estaAutenticado = !!localStorage.getItem('token');
-
-    if (!rutasPublicas.includes(toView) && !estaAutenticado) {
-        return 'Login'; // Redirige a Login antes de tocar el DOM
+Application.registerRoutes([
+    {
+        name: 'Facturacion',
+        path: '/facturacion',
+        form: 'Facturacion',
+        title: 'Facturación y Ventas',
+        meta: {
+            requiresAuth: true,
+            requiredModule: 'FACTURACION',
+            allowedRoles: ['ADMIN', 'CAJERO']
+        }
+    },
+    {
+        name: 'Login',
+        path: '/login',
+        form: 'Login',
+        title: 'Iniciar Sesión',
+        meta: { requiresAuth: false }
+    },
+    {
+        name: 'AccesoDenegado',
+        path: '/403',
+        form: 'AccesoDenegado',
+        title: 'Acceso Denegado'
     }
+]);
+```
+
+#### Pipeline de Navigation Guards Enriquecidos (`Application.addNavigationGuard`)
+
+Ejecuta verificaciones síncronas o asíncronas antes de renderizar la vista o tocar el DOM. Recibe el contexto completo de navegación `(to, from, context)` con protección automática contra condiciones de carrera (`context.abortSignal`):
+
+```javascript
+// Validar sesión, módulos y permisos de forma centralizada:
+Application.addNavigationGuard(async (to, from, context) => {
+    // 1. Verificación de Autenticación
+    if (to.meta?.requiresAuth && !AuthService.isAuthenticated()) {
+        return { allow: false, redirect: 'Login', reason: 'UNAUTHENTICATED' };
+    }
+
+    // 2. Verificación de Módulos Contratados (SaaS Multi-tenant)
+    if (to.meta?.requiredModule) {
+        const tieneModulo = await TenantService.hasActiveModule(to.meta.requiredModule);
+        if (!tieneModulo) {
+            return { 
+                allow: false, 
+                redirect: 'AccesoDenegado', 
+                reason: 'MODULE_NOT_SUBSCRIBED',
+                state: { requiredModule: to.meta.requiredModule }
+            };
+        }
+    }
+
+    // 3. Verificación de Roles
+    if (to.meta?.allowedRoles && !AuthService.hasAnyRole(to.meta.allowedRoles)) {
+        return { allow: false, redirect: 'AccesoDenegado', reason: 'INSUFFICIENT_PERMISSIONS' };
+    }
+
     return true; // Permite la navegación
 });
+```
 
-await Application.init();
-await Application.open('Login');
+*Valores de retorno soportados:*
+* `true` o `undefined`: Permite continuar la navegación.
+* `false`: Cancela la navegación inmediatamente y revierte silenciosamente la URL (`history.replaceState`) al estado anterior (`from`).
+* `string`: Redirige automáticamente al nombre de la vista especificada (ej. `'Login'`).
+* `Object`: `{ allow: false, redirect?: string, reason?: string, state?: any }` para diagnósticos detallados.
+
+#### Suscripción a Intentos Denegados (`Application.onNavigationDenied`)
+
+Permite centralizar telemetría, auditoría de seguridad y notificaciones UI ante cualquier intento de navegación bloqueado:
+
+```javascript
+Application.onNavigationDenied((event) => {
+    // event: { to, from, reason, state, timestamp }
+    console.warn(`[Seguridad] Navegación bloqueada hacia ${event.to.name}. Razón: ${event.reason}`);
+
+    if (event.reason === 'MODULE_NOT_SUBSCRIBED') {
+        NotificationService.warning(`Su plan no incluye el módulo ${event.state.requiredModule}.`);
+    }
+});
+```
+
+#### Consulta de Ruta Activa (`Application.currentRoute`)
+
+Permite inspeccionar en cualquier componente o controlador la ruta actual, sus parámetros y metadatos:
+
+```javascript
+const ruta = Application.currentRoute;
+console.log(ruta.name);   // 'Facturacion'
+console.log(ruta.path);   // '/facturacion'
+console.log(ruta.params); // { clienteId: 45 }
+console.log(ruta.query);  // { mode: 'edit' }
+console.log(ruta.meta);   // { requiresAuth: true, ... }
 ```
 
 ### JSForm.Logger (Seguridad OWASP Top 10)

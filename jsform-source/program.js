@@ -19,24 +19,33 @@ class Program {
         }
 
         // ==========================================
-        // PUNTO DE ARRANQUE REAL
-        // Aquí es donde lanzarás tu primer formulario, equivalente a: 
-        // Application.Run(new Form1()); en WinForms.
+        // CONFIGURACIÓN DE RUTAS Y SEGURIDAD (Opcional)
         // ==========================================
+        
+        // 1. Catálogo declarativo de rutas con metadatos:
+        // Application.registerRoutes([
+        //     { name: 'Login', path: '/login', form: 'Login', title: 'Iniciar Sesión', meta: { requiresAuth: false } },
+        //     { name: 'Dashboard', path: '/dashboard', form: 'Dashboard', title: 'Panel Principal', meta: { requiresAuth: true, allowedRoles: ['ADMIN', 'USER'] } },
+        //     { name: 'Facturacion', path: '/facturacion', form: 'Facturacion', title: 'Facturación', meta: { requiresAuth: true, requiredModule: 'FACTURACION' } },
+        //     { name: 'AccesoDenegado', path: '/403', form: 'AccesoDenegado', title: 'Acceso Denegado' }
+        // ]);
 
-        // Opcional: Registrar un Navigation Guard (Middleware de seguridad para rutas y botón Atrás):
-        // Application.setNavigationGuard(async (toView, fromController) => {
-        //     const publicViews = ['Login', 'Register'];
-        //     const isAuthenticated = !!localStorage.getItem('auth_token');
-        //     if (!publicViews.includes(toView) && !isAuthenticated) {
-        //         return 'Login'; // Redirige automáticamente antes de tocar el DOM
+        // 2. Suscribirse a intentos de navegación denegados:
+        // Application.onNavigationDenied((event) => {
+        //     console.warn(`[Seguridad] Acceso denegado a ${event.to.name}. Razón: ${event.reason}`);
+        // });
+
+        // 3. Pipeline de Navigation Guards Enriquecidos (con cancelación y metadatos):
+        // Application.addNavigationGuard(async (to, from, context) => {
+        //     if (to.meta?.requiresAuth && !localStorage.getItem('auth_token')) {
+        //         return { allow: false, redirect: 'Login', reason: 'UNAUTHENTICATED' };
         //     }
         //     return true;
         // });
-        
-        // Navegar a tu vista inicial (usando Application.open por nombre o Application.run con la clase):
+
+        // Navegar a tu vista inicial (usando Application.open por nombre o path):
         // await Application.open('Login');
-        // o:
+        // o con la clase directamente:
         // import { LoginController } from './forms/Login/login.controller.js';
         // await Application.run('login', LoginController);
     }

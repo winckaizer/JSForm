@@ -5,6 +5,33 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 
 ---
 
+## [1.3.12] - 2026-10-23
+
+### 🗺️ Sistema Declarativo de Rutas, Metadatos y Navigation Guards Asíncronos (`JSForm.Core.js`)
+* **Catálogo Declarativo de Rutas (`Application.registerRoutes`):**
+  * Permite registrar colecciones de rutas con `name`, `path`, `form`, `title` y objeto de metadatos `meta` (roles permitidos, módulos requeridos, autenticación, etc.).
+  * Indexación y resolución unificada O(1) permitiendo navegar por nombre de vista (`'Facturacion'`), nombre de ruta, o path relativo (`'/facturacion'`).
+  * Generación transparente de rutas virtuales para vistas ad-hoc por convención (`Application.open('MiVista')`), garantizando 100% retrocompatibilidad.
+  * Extracción y soporte nativo para parámetros de consulta (query strings: `to.query`) y parámetros de controlador (`to.params`).
+* **Pipeline de Navigation Guards Enriquecidos (`Application.addNavigationGuard` / `Application.setNavigationGuard`):**
+  * Nueva firma enriquecida `(to, from, context)` con soporte síncrono y asíncrono (Promise).
+  * Objeto de contexto con token de cancelación `abortSignal` (`AbortController`) y `timestamp`.
+  * Detección automática y retrocompatibilidad total con la firma clásica `(toView, fromController)`.
+  * Respuestas soportadas: booleano (`true`/`false`), string de redirección, u objeto detallado `{ allow: false, redirect?: string, reason?: string, state?: any }`.
+  * Control y captura segura de excepciones no controladas en guards sin romper el ciclo de vida de la aplicación.
+* **Hook Global de Denegación (`Application.onNavigationDenied`):**
+  * Suscripción a eventos de navegación cancelada o denegada (`{ to, from, reason, state, timestamp }`), facilitando telemetría, auditoría de seguridad y retroalimentación visual al usuario (toasts/notificaciones).
+* **Control de Concurrencia y Sincronización Blindada del Historial:**
+  * Cancelación de navegaciones en curso mediante `AbortController` al generarse clics rápidos consecutivos, evitando condiciones de carrera en promesas de guards lentos.
+  * Reversión silenciosa mediante `history.replaceState` cuando una navegación iniciada por botones *Atrás/Adelante* o edición de hash es denegada, impidiendo desincronización visual en la URL o bucles de historial.
+  * Detección y mitigación automática de bucles infinitos de redirección hacia la misma ruta.
+  * Soporte para actualización automática del título de la pestaña (`document.title`) a partir de `route.title`.
+* **Nuevos Métodos y Propiedades de Acceso:**
+  * `Application.currentRoute` / `Application.getCurrentRoute()`: Retorna el snapshot de la ruta activa.
+  * `Application.navigateToForm(formName, params)`: Alias retrocompatible de `Application.open`.
+
+---
+
 ## [1.3.11] - 2026-10-16
 
 ### 🛡️ Seguridad y Módulo Core `JSForm.Logger` (OWASP Top 10)

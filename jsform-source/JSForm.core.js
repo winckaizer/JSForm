@@ -28,15 +28,246 @@ export class Application {
     // Referencia al ID del contenedor de la vista actual
     static _currentViewTargetId = null;
 
-    // NAVIGATION GUARD: Middleware global para protección de rutas y control de sesión
+    // NAVIGATION & ROUTE REGISTRY (Declarativo, Metadatos y Pipeline de Guards)
+    static _routesList = [];
+    static _routesMap = new Map();
+    static _navigationGuards = [];
+    static _denialHooks = [];
+    static _currentRoute = null;
+    static _activeNavController = null;
+
+    // NAVIGATION GUARD: Referencia histórica para compatibilidad
     static _navigationGuard = null;
 
     /**
-     * Registra un interceptor o guard global de navegación antes de renderizar vistas.
-     * @param {function} guardFn - async (toView, fromController) => boolean | string (ruta de redirección)
+     * Registra un catálogo declarativo de rutas con metadatos asociados.
+     * @param {Array<Object>} routes - Lista de definiciones de ruta ({ name, path, form, title, meta })
+     */
+    static registerRoutes(routes) {
+        if (!Array.isArray(routes)) {
+            console.error('[JSForm] ❌ Error: registerRoutes espera un Array de rutas.');
+            return;
+        }
+
+        routes.forEach(route => {
+            if (!route || (!route.form && !route.name && !route.path)) return;
+
+            const normalizedRoute = {
+                name: route.name || route.form || (route.path ? route.path.replace(/^\/+/, '') : 'Default'),
+                path: route.path ? (route.path.startsWith('/') ? route.path : `/${route.path}`) : `/${route.form || route.name}`,
+                form: route.form || route.name,
+                title: route.title || null,
+                meta: route.meta ? { ...route.meta } : {}
+            };
+
+            this._routesList.push(normalizedRoute);
+
+            // Indexar en _routesMap por name, form y path en minúsculas para resolución rápida
+            if (normalizedRoute.name) {
+                this._routesMap.set(normalizedRoute.name.toLowerCase(), normalizedRoute);
+            }
+            if (normalizedRoute.form) {
+                this._routesMap.set(normalizedRoute.form.toLowerCase(), normalizedRoute);
+            }
+            if (normalizedRoute.path) {
+                this._routesMap.set(normalizedRoute.path.toLowerCase(), normalizedRoute);
+                this._routesMap.set(normalizedRoute.path.replace(/^\/+/, '').toLowerCase(), normalizedRoute);
+            }
+        });
+    }
+
+    /**
+     * Retorna una copia de la ruta activa actual o null.
+     */
+    static get currentRoute() {
+        return this._currentRoute ? { ...this._currentRoute } : null;
+    }
+
+    /**
+     * Alias funcional para obtener la ruta activa actual.
+     */
+    static getCurrentRoute() {
+        return this.currentRoute;
+    }
+
+    /**
+     * Añade un guard al pipeline de navegación enriquecido.
+     * @param {function} guardFn - async (to, from, context) => boolean | string | object
+     */
+    static addNavigationGuard(guardFn) {
+        if (typeof guardFn === 'function') {
+            guardFn._enriched = true;
+            this._navigationGuards.push(guardFn);
+        }
+    }
+
+    /**
+     * Registra o reemplaza el guard global de navegación antes de renderizar vistas.
+     * Soporta tanto la firma clásica (toView, fromController) como la enriquecida (to, from, context).
+     * @param {function} guardFn - async (to, from, context) | (toView, fromController) => boolean | string | object
      */
     static setNavigationGuard(guardFn) {
-        this._navigationGuard = typeof guardFn === 'function' ? guardFn : null;
+        this._navigationGuards = [];
+        if (typeof guardFn === 'function') {
+            const fnStr = guardFn.toString();
+            const isEnriched = guardFn.length >= 3 || 
+                fnStr.includes('.meta') || 
+                fnStr.includes('.params') || 
+                fnStr.includes('.query');
+            guardFn._enriched = isEnriched;
+            this._navigationGuards.push(guardFn);
+            this._navigationGuard = guardFn;
+        } else {
+            this._navigationGuard = null;
+        }
+    }
+
+    /**
+     * Registra un callback global para recibir eventos cuando una navegación es rechazada o cancelada.
+     * @param {function} callback - ({ to, from, reason, state, timestamp }) => void
+     */
+    static onNavigationDenied(callback) {
+        if (typeof callback === 'function') {
+            this._denialHooks.push(callback);
+        }
+    }
+
+    /**
+     * Dispara los hooks de denegación registrados.
+     * @private
+     */
+    static _triggerNavigationDenied(to, from, reason, state = null) {
+        const event = {
+            to,
+            from,
+            reason: reason || 'NAVIGATION_CANCELLED',
+            state: state || null,
+            timestamp: Date.now()
+        };
+
+        this._denialHooks.forEach(hook => {
+            try {
+                hook(event);
+            } catch (err) {
+                console.error('[JSForm onNavigationDenied] ❌ Error en subscriber:', err);
+            }
+        });
+    }
+
+    /**
+     * Resuelve un identificador de destino (nombre, formulario o path) a un objeto RouteLocation estandarizado.
+     * @private
+     */
+    static _resolveRoute(target, params = null) {
+        if (!target) return null;
+
+        let pathOnly = target;
+        let queryString = '';
+        const queryParams = {};
+
+        if (typeof target === 'string' && target.includes('?')) {
+            const parts = target.split('?');
+            pathOnly = parts[0];
+            queryString = parts[1] || '';
+            try {
+                const searchParams = new URLSearchParams(queryString);
+                for (const [key, val] of searchParams.entries()) {
+                    queryParams[key] = val;
+                }
+            } catch (e) {
+                // Ignore parse error
+            }
+        }
+
+        const cleanKey = typeof pathOnly === 'string' ? pathOnly.replace(/^\/+/, '').toLowerCase() : '';
+        const matched = this._routesMap.get(cleanKey);
+
+        const formName = matched ? matched.form : (typeof pathOnly === 'string' ? pathOnly.replace(/^\/+/, '') : target);
+        const routeName = matched ? matched.name : formName;
+        const routePath = matched ? matched.path : (typeof pathOnly === 'string' && pathOnly.startsWith('/') ? pathOnly : `/${formName}`);
+        const routeMeta = matched ? { ...matched.meta } : {};
+        const routeTitle = matched ? matched.title : null;
+
+        return {
+            name: routeName,
+            form: formName,
+            path: routePath,
+            title: routeTitle,
+            meta: routeMeta,
+            params: params && typeof params === 'object' ? { ...params } : (params !== null ? { value: params } : {}),
+            query: queryParams,
+            toString() { return this.form || this.name; },
+            valueOf() { return this.form || this.name; }
+        };
+    }
+
+    /**
+     * Ejecuta secuencialmente el pipeline de guardas de navegación.
+     * @private
+     */
+    static async _runGuards(to, from, context) {
+        for (const guard of this._navigationGuards) {
+            if (context.abortSignal && context.abortSignal.aborted) {
+                return { allowed: false, reason: 'NAVIGATION_ABORTED' };
+            }
+
+            try {
+                let result;
+                if (guard._enriched || guard.length >= 3) {
+                    result = await guard(to, from, context);
+                } else {
+                    // Firma clásica retrocompatible: (toView, fromController)
+                    result = await guard(to.form || to.name, this._currentController);
+                }
+
+                if (context.abortSignal && context.abortSignal.aborted) {
+                    return { allowed: false, reason: 'NAVIGATION_ABORTED' };
+                }
+
+                // 1. allow === true o undefined -> continúa al siguiente guard
+                if (result === true || result === undefined) {
+                    continue;
+                }
+
+                // 2. allow === false
+                if (result === false) {
+                    return {
+                        allowed: false,
+                        reason: 'NAVIGATION_CANCELLED'
+                    };
+                }
+
+                // 3. string -> Redirección simple
+                if (typeof result === 'string') {
+                    return {
+                        allowed: false,
+                        redirect: result,
+                        reason: 'REDIRECT'
+                    };
+                }
+
+                // 4. Objeto de respuesta detallada
+                if (typeof result === 'object' && result !== null) {
+                    if (result.allow === false || result.allowed === false) {
+                        return {
+                            allowed: false,
+                            redirect: result.redirect || null,
+                            reason: result.reason || 'NAVIGATION_DENIED',
+                            state: result.state || null
+                        };
+                    }
+                }
+            } catch (err) {
+                console.error(`[JSForm NavigationGuard] ❌ Excepción no controlada en guard:`, err);
+                return {
+                    allowed: false,
+                    reason: 'GUARD_ERROR',
+                    state: { error: err }
+                };
+            }
+        }
+
+        return { allowed: true };
     }
 
     /**
@@ -48,47 +279,93 @@ export class Application {
 
         // MEJORA 2: Escuchamos cuando el usuario presiona "Atrás" o "Adelante" en el navegador
         window.addEventListener('popstate', async (event) => {
-            if (event.state && event.state.form) {
-                const targetForm = event.state.form;
+            if (event.state && (event.state.form || event.state.path)) {
+                const targetForm = event.state.form || event.state.path;
+                const targetParams = event.state.params || null;
+                const targetId = event.state.target || this.AppConfig.router.defaultTarget;
 
-                // 1. Verificación previa con Navigation Guard (evita inyectar HTML en el DOM si no hay sesión)
-                if (typeof this._navigationGuard === 'function') {
-                    const allowed = await this._navigationGuard(targetForm, this._currentController);
-                    if (allowed === false || (typeof allowed === 'string' && allowed !== targetForm)) {
-                        const redirectView = typeof allowed === 'string' ? allowed : (this.AppConfig.router?.loginView || 'Login');
-                        console.warn(`[JSForm NavigationGuard] 🛑 Bloqueada navegación 'Atrás' hacia '${targetForm}'. Redirigiendo a '${redirectView}'...`);
-                        
-                        // Sobrescribir historial para evitar bucles o vistas fantasma
-                        const targetId = event.state.target || this.AppConfig.router.defaultTarget;
-                        const newUrl = `${this.AppConfig.router.basePath}/${redirectView}`;
-                        window.history.replaceState({ form: redirectView, target: targetId }, "", newUrl);
+                const to = this._resolveRoute(targetForm, targetParams);
+                const from = this._currentRoute;
 
-                        await this.open(redirectView);
+                // Control de concurrencia y token de cancelación
+                if (this._activeNavController) {
+                    this._activeNavController.abort();
+                }
+                const navController = new AbortController();
+                this._activeNavController = navController;
+                const context = {
+                    abortSignal: navController.signal,
+                    timestamp: Date.now()
+                };
+
+                // 1. Verificación con el Pipeline de Guards
+                const guardCheck = await this._runGuards(to, from, context);
+                if (context.abortSignal.aborted) return;
+
+                if (!guardCheck.allowed) {
+                    this._triggerNavigationDenied(to, from, guardCheck.reason, guardCheck.state);
+
+                    if (guardCheck.redirect) {
+                        const redirectRoute = this._resolveRoute(guardCheck.redirect);
+                        const redirectPath = redirectRoute?.path || `/${guardCheck.redirect}`;
+                        const newUrl = `${this.AppConfig.router.basePath}${redirectPath.startsWith('/') ? redirectPath : '/' + redirectPath}`;
+                        console.warn(`[JSForm NavigationGuard] 🛑 Navegación 'Atrás/Adelante' hacia '${to.name}' bloqueada. Redirigiendo a '${guardCheck.redirect}'...`);
+                        window.history.replaceState({ form: redirectRoute.form, name: redirectRoute.name, path: redirectPath, target: targetId }, "", newUrl);
+                        await this.open(guardCheck.redirect, targetParams);
                         return;
                     }
+
+                    // Si fue denegada/cancelada sin redirección (allow: false), REVERTIR la URL al estado 'from' previo
+                    console.warn(`[JSForm NavigationGuard] 🛑 Navegación 'Atrás/Adelante' hacia '${to.name}' cancelada (${guardCheck.reason}). Revirtiendo URL...`);
+                    if (from) {
+                        const prevPath = from.path || `/${from.form}`;
+                        const prevUrl = `${this.AppConfig.router.basePath}${prevPath.startsWith('/') ? prevPath : '/' + prevPath}`;
+                        const prevTarget = this._currentViewTargetId || this.AppConfig.router.defaultTarget;
+                        window.history.replaceState({ form: from.form, name: from.name, path: prevPath, target: prevTarget, params: from.params }, "", prevUrl);
+                    }
+                    return;
                 }
 
-                const routeInfo = this._routes[targetForm];
-                if (routeInfo) {
-                    // Volvemos a cargar la vista anterior pero sin empujarla al historial de nuevo
-                    await this.run(targetForm, routeInfo.ControllerClass, event.state.target, null);
+                const routeInfo = this._routes[to.form];
+                if (routeInfo && routeInfo.ControllerClass) {
+                    await this.run(to.form, routeInfo.ControllerClass, targetId, targetParams, to, context);
                 } else {
-                    await this.open(targetForm);
+                    await this.open(to.form, targetParams);
+                }
+            }
+        });
+
+        // Soporte para navegación basada en Hash (#/mi-ruta)
+        window.addEventListener('hashchange', async () => {
+            const rawHash = window.location.hash.replace(/^#\/?/, '');
+            if (rawHash) {
+                const currentName = this._currentRoute?.name?.toLowerCase();
+                const currentForm = this._currentRoute?.form?.toLowerCase();
+                const currentPath = this._currentRoute?.path?.replace(/^\/+/, '').toLowerCase();
+                const targetKey = rawHash.toLowerCase();
+
+                if (currentName !== targetKey && currentForm !== targetKey && currentPath !== targetKey) {
+                    await this.open(rawHash);
                 }
             }
         });
 
         // Soporte para bfcache (Back-Forward Cache): si el navegador restaura un snapshot congelado en memoria
         window.addEventListener('pageshow', async (event) => {
-            if (event.persisted && typeof this._navigationGuard === 'function') {
-                const currentForm = window.history.state?.form;
-                if (currentForm) {
-                    const allowed = await this._navigationGuard(currentForm, this._currentController);
-                    if (allowed === false || (typeof allowed === 'string' && allowed !== currentForm)) {
-                        const redirectView = typeof allowed === 'string' ? allowed : (this.AppConfig.router?.loginView || 'Login');
-                        console.warn(`[JSForm bfcache] 🛑 Restauración de caché bloqueada para '${currentForm}'. Redirigiendo a '${redirectView}'...`);
+            if (event.persisted && this._navigationGuards.length > 0) {
+                const currentTarget = window.history.state?.form || window.history.state?.path;
+                if (currentTarget) {
+                    const to = this._resolveRoute(currentTarget, window.history.state?.params);
+                    const context = { abortSignal: (new AbortController()).signal, timestamp: Date.now() };
+                    const guardCheck = await this._runGuards(to, null, context);
+                    if (!guardCheck.allowed) {
+                        this._triggerNavigationDenied(to, null, guardCheck.reason, guardCheck.state);
+                        const redirectView = guardCheck.redirect || (this.AppConfig.router?.loginView || 'Login');
+                        console.warn(`[JSForm bfcache] 🛑 Restauración de caché bloqueada para '${to.name}'. Redirigiendo a '${redirectView}'...`);
                         const targetId = window.history.state?.target || this.AppConfig.router.defaultTarget;
-                        window.history.replaceState({ form: redirectView, target: targetId }, "", `${this.AppConfig.router.basePath}/${redirectView}`);
+                        const redirectRoute = this._resolveRoute(redirectView);
+                        const redirectPath = redirectRoute?.path || `/${redirectView}`;
+                        window.history.replaceState({ form: redirectRoute.form, name: redirectRoute.name, path: redirectPath, target: targetId }, "", `${this.AppConfig.router.basePath}${redirectPath}`);
                         await this.open(redirectView);
                     }
                 }
@@ -110,37 +387,82 @@ export class Application {
     }
 
     /**
-     * Abre y navega a una vista por su nombre, resolviendo dinámicamente el controlador si no ha sido registrado.
-     * @param {string} viewName - El nombre de la vista/formulario (ej. 'Dashboard', 'Login').
+     * Abre y navega a una vista por su nombre o path, ejecutando el pipeline de guards y resolviendo dinámicamente el controlador.
+     * @param {string} viewOrPath - El nombre de la vista/formulario o path registrado (ej. 'Dashboard', '/facturacion').
      * @param {object} [parameters=null] - Parámetros opcionales a pasar al controlador.
      * @returns {Promise<object|null>} Instancia del controlador creado.
      */
-    static async open(viewName, parameters = null) {
-        const route = this._routes[viewName];
+    static async open(viewOrPath, parameters = null) {
+        // Control de concurrencia: cancelar cualquier navegación previa en curso
+        if (this._activeNavController) {
+            this._activeNavController.abort();
+        }
+        const navController = new AbortController();
+        this._activeNavController = navController;
+        const context = {
+            abortSignal: navController.signal,
+            timestamp: Date.now()
+        };
+
+        const to = this._resolveRoute(viewOrPath, parameters);
+        const from = this._currentRoute;
+
+        // Ejecutar pipeline de guards de navegación
+        const guardCheck = await this._runGuards(to, from, context);
+        if (context.abortSignal.aborted) {
+            return null;
+        }
+
+        if (!guardCheck.allowed) {
+            this._triggerNavigationDenied(to, from, guardCheck.reason, guardCheck.state);
+
+            if (guardCheck.redirect) {
+                const redirectClean = guardCheck.redirect.replace(/^\/+/, '').toLowerCase();
+                const toFormClean = (to.form || '').toLowerCase();
+                const toNameClean = (to.name || '').toLowerCase();
+                const toPathClean = (to.path || '').replace(/^\/+/, '').toLowerCase();
+
+                if (redirectClean === toFormClean || redirectClean === toNameClean || redirectClean === toPathClean) {
+                    console.warn(`[JSForm NavigationGuard] 🛑 Detectado bucle de redirección hacia '${to.name}'. Deteniendo navegación.`);
+                    return null;
+                }
+
+                console.log(`[JSForm NavigationGuard] 🔄 Redirigiendo navegación de '${to.name}' a '${guardCheck.redirect}'...`);
+                return await this.open(guardCheck.redirect, parameters);
+            }
+
+            console.warn(`[JSForm NavigationGuard] 🛑 Navegación hacia '${to.name}' denegada (${guardCheck.reason}).`);
+            return null;
+        }
+
+        const route = this._routes[to.form];
         if (route && route.ControllerClass) {
-            return await this.run(viewName, route.ControllerClass, null, parameters);
+            return await this.run(to.form, route.ControllerClass, null, parameters, to, context);
         }
 
         // Resolución dinámica por convención: /app/forms/[View]/[View].controller.js
-        const folderName = viewName;
-        const fileName = viewName;
+        const folderName = to.form;
+        const fileName = to.form;
         const classNamePrefix = folderName.charAt(0).toUpperCase() + folderName.slice(1);
         const modulePath = `/app/forms/${folderName}/${fileName}.controller.js`;
 
         try {
             const module = await import(modulePath);
+            if (context.abortSignal.aborted) return null;
+
             const ControllerClass = module[`${classNamePrefix}Controller`];
             if (!ControllerClass) {
                 throw new Error(`No se encontró la clase exportada '${classNamePrefix}Controller' en el módulo '${modulePath}'`);
             }
-            return await this.run(viewName, ControllerClass, null, parameters);
+            return await this.run(to.form, ControllerClass, null, parameters, to, context);
         } catch (e) {
-            console.error(`[JSForm] ❌ Error en Application.open('${viewName}'):`, e);
+            if (context.abortSignal.aborted) return null;
+            console.error(`[JSForm] ❌ Error en Application.open('${viewOrPath}'):`, e);
             const target = this._currentViewTargetId || this.AppConfig.router.defaultTarget;
             const rootContainer = document.getElementById(target);
             if (rootContainer) {
                 await this._showErrorPage(rootContainer, 510, null, {
-                    view: viewName,
+                    view: to.form,
                     error: e,
                     modulePath
                 });
@@ -151,11 +473,20 @@ export class Application {
 
     /**
      * Alias de Application.open para navegación desacoplada SPA.
-     * @param {string} viewName - Nombre de la vista (ej. 'Login', 'Dashboard').
+     * @param {string} viewOrPath - Nombre de la vista o path (ej. 'Login', '/facturacion').
      * @param {object} [parameters=null] - Parámetros a enviar al controlador.
      */
-    static async navigate(viewName, parameters = null) {
-        return await this.open(viewName, parameters);
+    static async navigate(viewOrPath, parameters = null) {
+        return await this.open(viewOrPath, parameters);
+    }
+
+    /**
+     * Alias de Application.open para compatibilidad con invocaciones tradicionales.
+     * @param {string} formName - Nombre de la vista o formulario.
+     * @param {object} [parameters=null] - Parámetros a enviar al controlador.
+     */
+    static async navigateToForm(formName, parameters = null) {
+        return await this.open(formName, parameters);
     }
 
     /**
@@ -164,24 +495,32 @@ export class Application {
      * @param {class} ControllerClass - The controller class to instantiate.
      * @param {string} [targetId=null] - The DOM element ID where the HTML will be injected.
      * @param {object} [parameters=null] - Optional data to pass to the controller instance.
+     * @param {object} [resolvedRoute=null] - Objeto RouteLocation ya resuelto por open().
+     * @param {object} [navContext=null] - Contexto de navegación ({ abortSignal, timestamp }).
      * @returns {Promise<object>} The instantiated controller.
      */
-    static async run(viewName, ControllerClass, targetId = null, parameters = null) {
+    static async run(viewName, ControllerClass, targetId = null, parameters = null, resolvedRoute = null, navContext = null) {
         // ==========================================
         // 0. VERIFICACIÓN DEL NAVIGATION GUARD
-        // Se ejecuta ANTES de evaluar layouts o inyectar cualquier HTML en el DOM.
+        // Se ejecuta si run fue invocado directamente sin pasar por open()
         // ==========================================
-        if (typeof this._navigationGuard === 'function') {
-            const guardResult = await this._navigationGuard(viewName, this._currentController);
-            if (guardResult === false) {
-                console.warn(`[JSForm NavigationGuard] 🛑 Acceso a '${viewName}' denegado por el Navigation Guard.`);
+        if (!navContext && this._navigationGuards.length > 0) {
+            const to = resolvedRoute || this._resolveRoute(viewName, parameters);
+            const from = this._currentRoute;
+            const context = { abortSignal: (new AbortController()).signal, timestamp: Date.now() };
+
+            const guardCheck = await this._runGuards(to, from, context);
+            if (!guardCheck.allowed) {
+                this._triggerNavigationDenied(to, from, guardCheck.reason, guardCheck.state);
+                if (guardCheck.redirect) {
+                    const target = targetId || this.AppConfig.router.defaultTarget;
+                    const redirectRoute = this._resolveRoute(guardCheck.redirect);
+                    const redirectPath = redirectRoute?.path || `/${guardCheck.redirect}`;
+                    window.history.replaceState({ form: redirectRoute.form, name: redirectRoute.name, path: redirectPath, target }, "", `${this.AppConfig.router.basePath}${redirectPath}`);
+                    return await this.open(guardCheck.redirect, parameters);
+                }
+                console.warn(`[JSForm NavigationGuard] 🛑 Acceso a '${to.name}' denegado por el Navigation Guard.`);
                 return null;
-            }
-            if (typeof guardResult === 'string' && guardResult !== viewName) {
-                console.log(`[JSForm NavigationGuard] 🔄 Redirigiendo navegación de '${viewName}' a '${guardResult}'...`);
-                const target = targetId || this.AppConfig.router.defaultTarget;
-                window.history.replaceState({ form: guardResult, target }, "", `${this.AppConfig.router.basePath}/${guardResult}`);
-                return await this.open(guardResult, parameters);
             }
         }
 
@@ -203,20 +542,26 @@ export class Application {
             if (requestedView && requestedView !== 'index.html' && requestedView.toLowerCase() !== viewName.toLowerCase()) {
                 console.log(`[JSForm] 🔍 Detectada ruta en URL: '${requestedView}'. Intentando restaurar sesión...`);
 
+                const to = this._resolveRoute(requestedView);
+                const context = { abortSignal: (new AbortController()).signal, timestamp: Date.now() };
+
                 // Consultar navigation guard antes de restaurar rutas protegidas desde la URL
-                if (typeof this._navigationGuard === 'function') {
-                    const allowed = await this._navigationGuard(requestedView, null);
-                    if (allowed === false || (typeof allowed === 'string' && allowed !== requestedView)) {
-                        const redirectView = typeof allowed === 'string' ? allowed : viewName;
-                        console.warn(`[JSForm NavigationGuard] 🛑 Auto-routing bloqueado para '${requestedView}'. Redirigiendo a '${redirectView}'...`);
+                if (this._navigationGuards.length > 0) {
+                    const guardCheck = await this._runGuards(to, null, context);
+                    if (!guardCheck.allowed) {
+                        this._triggerNavigationDenied(to, null, guardCheck.reason, guardCheck.state);
+                        const redirectView = guardCheck.redirect || viewName;
+                        console.warn(`[JSForm NavigationGuard] 🛑 Auto-routing bloqueado para '${to.name}'. Redirigiendo a '${redirectView}'...`);
                         const target = targetId || this.AppConfig.router.defaultTarget;
-                        window.history.replaceState({ form: redirectView, target }, "", `${this.AppConfig.router.basePath}/${redirectView}`);
+                        const redirectRoute = this._resolveRoute(redirectView);
+                        const redirectPath = redirectRoute?.path || `/${redirectView}`;
+                        window.history.replaceState({ form: redirectRoute.form, name: redirectRoute.name, path: redirectPath, target }, "", `${this.AppConfig.router.basePath}${redirectPath}`);
                         return await this.open(redirectView, parameters);
                     }
                 }
                 
-                const folderName = requestedView;
-                const fileName = requestedView;
+                const folderName = to.form;
+                const fileName = to.form;
                 const classNamePrefix = folderName.charAt(0).toUpperCase() + folderName.slice(1);
 
                 try {
@@ -242,7 +587,7 @@ export class Application {
                             const LayoutController = layoutModule[`${layoutClassNamePrefix}Controller`];
 
                             if (LayoutController) {
-                                this._currentLayoutController = await this._internalRun(layoutConfig.view, LayoutController, null, null, false, true);
+                                this._currentLayoutController = await this._internalRun(layoutConfig.view, LayoutController, null, null, false, true, null, context);
                                 this._currentLayout = layoutConfig.view;
                                 targetForChildView = layoutConfig.target; // El nuevo target es el contenedor del layout
                             }
@@ -250,8 +595,8 @@ export class Application {
 
                         // 2. Ahora cargamos la vista solicitada en el target correcto (sea el root o el del layout)
                         console.log(`[JSForm] ✅ Sesión restaurada: Cargando vista '${requestedView}'...`);
-                        this.register(requestedView, DynamicController); // Registrar para el historial
-                        const controller = await this._internalRun(requestedView, DynamicController, targetForChildView, parameters, true, false);
+                        this.register(to.form, DynamicController); // Registrar para el historial
+                        const controller = await this._internalRun(to.form, DynamicController, targetForChildView, parameters, true, false, to, context);
                         this._currentController = controller;
                         
                         // 3. Retornamos para evitar que se ejecute la vista por defecto de program.js
@@ -263,7 +608,7 @@ export class Application {
                     const rootContainer = document.getElementById(target);
                     if (rootContainer) {
                         await this._showErrorPage(rootContainer, 510, null, {
-                            view: requestedView,
+                            view: to.form,
                             error: e,
                             modulePath: `/app/forms/${folderName}/${fileName}.controller.js`
                         });
@@ -305,7 +650,7 @@ export class Application {
                     
                     // Cargamos el Layout en el root (sin empujar al historial)
                     // isLayout = true para evitar que se confunda con la página actual
-                    this._currentLayoutController = await this._internalRun(layoutConfig.view, LayoutClass, null, null, false, true);
+                    this._currentLayoutController = await this._internalRun(layoutConfig.view, LayoutClass, null, null, false, true, null, navContext);
                     this._currentLayout = layoutConfig.view;
 
                 } catch (e) {
@@ -333,13 +678,15 @@ export class Application {
 
         // Registramos la ruta por si el usuario usa el botón "Atrás" luego
         this.register(viewName, ControllerClass);
-        return await this._internalRun(viewName, ControllerClass, finalTargetId, parameters, true);
+        return await this._internalRun(viewName, ControllerClass, finalTargetId, parameters, true, false, resolvedRoute, navContext);
     }
 
     /**
      * Internal runner logic to handle history pushing conditionally.
      */
-    static async _internalRun(viewName, ControllerClass, targetId, parameters, pushHistory, isLayout = false) {
+    static async _internalRun(viewName, ControllerClass, targetId, parameters, pushHistory, isLayout = false, resolvedRoute = null, navContext = null) {
+        if (navContext?.abortSignal?.aborted) return null;
+
         const finalTargetId = targetId || this.AppConfig.router.defaultTarget;
         const rootContainer = document.getElementById(finalTargetId);
 
@@ -351,7 +698,6 @@ export class Application {
             }
 
             // 1. Resolve the target container
-            
             if (!rootContainer) {
                 console.error(`[JSForm] ❌ Error: Target container '#${finalTargetId}' not found.`);
                 return null;
@@ -366,6 +712,8 @@ export class Application {
 
             // 3. Fetch and inject HTML markup
             const response = await fetch(htmlPath);
+            if (navContext?.abortSignal?.aborted) return null;
+
             if (!response.ok) {
                 const error = new Error(`HTML not found at ${htmlPath}. Status: ${response.status}`);
                 error.response = response; // Adjuntamos la respuesta al error
@@ -373,32 +721,47 @@ export class Application {
             }
             
             rootContainer.innerHTML = await response.text();
+            if (navContext?.abortSignal?.aborted) return null;
 
             // MEJORA i18n: Aplicar traducciones automáticamente
             i18n.apply(rootContainer);
 
             // 4. Update browser URL without reloading (History API)
-            const newUrl = `${this.AppConfig.router.basePath}/${viewName}`;
+            const route = resolvedRoute || this._resolveRoute(viewName, parameters);
+            const routePath = route?.path || `/${viewName}`;
+            const newUrl = `${this.AppConfig.router.basePath}${routePath.startsWith('/') ? routePath : '/' + routePath}`;
             if (pushHistory && window.location.pathname !== newUrl) {
-                window.history.pushState({ form: viewName, target: finalTargetId }, "", newUrl);
+                window.history.pushState({ 
+                    form: route?.form || viewName, 
+                    name: route?.name || viewName, 
+                    path: routePath, 
+                    target: finalTargetId, 
+                    params: route?.params || parameters 
+                }, "", newUrl);
             }
 
-            // 5. Update document title based on global config
-            const classNamePrefix = folderName.charAt(0).toUpperCase() + folderName.slice(1);
-            document.title = `${classNamePrefix} - ${this.AppConfig.appName}`;
+            // 5. Update document title based on route title or convention
+            if (route && route.title) {
+                document.title = `${route.title} - ${this.AppConfig.appName}`;
+            } else {
+                const classNamePrefix = folderName.charAt(0).toUpperCase() + folderName.slice(1);
+                document.title = `${classNamePrefix} - ${this.AppConfig.appName}`;
+            }
 
             // 6. Instantiate and return the controller
             const formInstance = new ControllerClass(parameters);
             
-            // Actualizamos nuestra referencia global al nuevo controlador
+            // Actualizamos nuestra referencia global al nuevo controlador y ruta activa
             if (!isLayout) {
                 this._currentController = formInstance;
                 this._currentViewTargetId = finalTargetId;
+                this._currentRoute = route;
             }
             
             return formInstance;
             
         } catch (error) {
+            if (navContext?.abortSignal?.aborted) return null;
             // MEJORA: Manejo de errores centralizado
             console.error(`[JSForm] ❌ Failed to load '${viewName}':`, error);
 
