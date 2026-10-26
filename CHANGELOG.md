@@ -5,6 +5,27 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 
 ---
 
+## [1.3.13] - 2026-10-26
+
+### 📦 Desacoplamiento de Ámbitos y Protección Anti-Zombie en `JSForm.State.js`
+* **Ámbitos de Almacenamiento Explícitos (`State.get(key, storageScope)`):**
+  * Soporte para recuperar valores especificando el ámbito requerido (`'session'`, `'local'`, `'memory'`).
+  * Al solicitar `'session'`, la consulta se restringe estrictamente a `sessionStorage`, impidiendo que al expirar o cerrar la pestaña se revivan credenciales caducadas ("Zombie State") desde `localStorage`.
+  * Mantiene 100% retrocompatibilidad con la cascada clásica (`memory` -> `session` -> `local`) cuando `storageScope` no se especifica.
+* **Limpieza Cruzada Anti-Colisión (`State.set`):**
+  * Al persistir una clave con ámbito `'session'`, se purga automáticamente la clave residual en `localStorage` (y viceversa), evitando desfases de datos cuando una variable cambia su ciclo de vida.
+  * Al guardar en `'memory'` (o `false`), limpia proactivamente de ambos depósitos en el navegador.
+* **Tolerancia a Cadenas No-JSON (Safe Parsing):**
+  * El parseo de datos se encapsula en `try/catch`, devolviendo el string original en lugar de arrojar un `SyntaxError` si una entrada en storage contiene texto plano no serializado como JSON.
+* **Purga Segura con Prefijos en `State.clear()`:**
+  * Al limpiar todo el estado (`State.clear()`), se eliminan exclusivamente las claves pertenecientes al framework (`jsform_*`), preservando variables de analítica, tokens de terceros o datos de otras aplicaciones en el mismo dominio.
+* **Nuevos Métodos Auxiliares:**
+  * `State.has(key, storageScope)`: Comprobación booleana de existencia de clave.
+  * `State.remove(key, storageScope)`: Alias semántico para eliminación puntual.
+  * Helper `_getStorage` con captura de excepciones para evitar caídas en navegación privada o iframes con políticas de seguridad restrictivas (`SecurityError`).
+
+---
+
 ## [1.3.12] - 2026-10-23
 
 ### 🗺️ Sistema Declarativo de Rutas, Metadatos y Navigation Guards Asíncronos (`JSForm.Core.js`)

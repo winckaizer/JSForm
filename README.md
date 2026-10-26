@@ -556,6 +556,49 @@ const datosLimpios = Logger.sanitize(datosUsuario);
 // Logger.restore();
 ```
 
+### JSForm.State (Gestión de Estado y Persistencia)
+
+`JSForm.State` provee gestión reactiva de estado global en memoria con sincronización transparente a `sessionStorage` o `localStorage`, aislamiento de ámbitos para evitar estados zombis ("Zombie State") y resiliencia ante errores de parseo:
+
+```javascript
+import { State } from '../../core/JSForm.state.js';
+
+// 1. Guardar en memoria (solo dura en el ciclo de vida actual)
+State.set('usuarioActual', { id: 1, nombre: 'Ana' });
+
+// 2. Guardar en SessionStorage (sobrevive a F5 pero se destruye al cerrar la pestaña)
+State.set('authToken', 'ey...', 'session');
+
+// 3. Guardar en LocalStorage (sobrevive al reinicio del navegador)
+State.set('temaOscuro', true, 'local');
+
+// 4. Recuperación con ámbito explícito (Protección Anti-Zombie)
+// Consulta únicamente sessionStorage sin descender a localStorage
+const token = State.get('authToken', 'session'); 
+
+// Consulta únicamente localStorage
+const tema = State.get('temaOscuro', 'local');
+
+// Consulta en cascada por defecto (Memoria -> SessionStorage -> LocalStorage)
+const valor = State.get('clave');
+
+// 5. Suscripciones Reactivas
+const cancelarSuscripcion = State.subscribe('authToken', (nuevoToken) => {
+    console.log('El token cambió a:', nuevoToken);
+});
+
+// En el método onDestroy del controlador:
+cancelarSuscripcion();
+
+// 6. Comprobación y Limpieza Segura
+if (State.has('authToken', 'session')) {
+    State.remove('authToken', 'session'); // o State.clear('authToken', 'session');
+}
+
+// Limpiar todo el estado de JSForm (borra exclusivamente claves con prefijo jsform_)
+State.clear();
+```
+
 ## ⚙️ Comandos
 
 *   `npm run dev`: Inicia el entorno de desarrollo con el watcher de archivos y el servidor de Vite.

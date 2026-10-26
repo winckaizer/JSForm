@@ -3,6 +3,8 @@
 /**
  * Global State Management for JSForm.
  * Handles in-memory data storage with fallback to SessionStorage or LocalStorage.
+ * Soporta desacoplamiento estricto de ámbitos ('session', 'local', 'memory')
+ * para prevenir resurrección de credenciales caducadas ("Zombie State").
  */
 export class State {
     
@@ -10,10 +12,46 @@ export class State {
     static _listeners = {};
 
     /**
+     * Obtiene de forma segura el objeto de almacenamiento del navegador,
+     * protegiendo ante SecurityError en navegación privada o iframes restrictivos.
+     * @private
+     */
+    static _getStorage(type) {
+        try {
+            if (type === 'session' && typeof sessionStorage !== 'undefined') return sessionStorage;
+            if (type === 'local' && typeof localStorage !== 'undefined') return localStorage;
+        } catch (_) {
+            return null;
+        }
+        return null;
+    }
+
+    /**
+     * Limpia únicamente las claves pertenecientes al prefijo jsform_ en el storage especificado.
+     * @private
+     */
+    static _clearPrefixedStorage(storage) {
+        if (!storage) return;
+        try {
+            const keysToRemove = [];
+            for (let i = 0; i < storage.length; i++) {
+                const k = storage.key(i);
+                if (k && k.startsWith('jsform_')) {
+                    keysToRemove.push(k);
+                }
+            }
+            keysToRemove.forEach(k => storage.removeItem(k));
+        } catch (_) {
+            // Degradación silenciosa
+        }
+    }
+
+    /**
      * Saves a value in the global state and notifies subscribers.
+     * Realiza limpieza cruzada para prevenir colisiones o estados zombi.
      * @param {string} key - The identifier for the data.
      * @param {any} value - The data to store.
-     * @param {string|null} [persistType=null] - 'session' (survives F5) or 'local' (survives browser restart). Null for memory only.
+     * @param {'session'|'local'|'memory'|null} [persistType=null] - 'session' (survives F5) or 'local' (survives browser restart). Null for memory only.
      */
     static set(key, value, persistType = null) {
         this._store[key] = value;
@@ -23,35 +61,96 @@ export class State {
             this._listeners[key].forEach(callback => callback(value));
         }
 
-        // Save to browser storage if requested
+        const sessionStore = this._getStorage('session');
+        const localStore = this._getStorage('local');
+
+        // Save to browser storage if requested con limpieza cruzada
         if (persistType === 'session') {
-            sessionStorage.setItem(`jsform_${key}`, JSON.stringify(value));
+            if (sessionStore) {
+                try { sessionStore.setItem(`jsform_${key}`, JSON.stringify(value)); } catch (_) {}
+            }
+            // Purgar de local para evitar resurrección de estados obsoletos
+            if (localStore) {
+                try { localStore.removeItem(`jsform_${key}`); } catch (_) {}
+            }
         } else if (persistType === 'local') {
-            localStorage.setItem(`jsform_${key}`, JSON.stringify(value));
+            if (localStore) {
+                try { localStore.setItem(`jsform_${key}`, JSON.stringify(value)); } catch (_) {}
+            }
+            // Purgar de session para mantener paridad estricta
+            if (sessionStore) {
+                try { sessionStore.removeItem(`jsform_${key}`); } catch (_) {}
+            }
+        } else if (persistType === 'memory' || persistType === false) {
+            // Si explícitamente se especifica 'memory', limpiar de ambos storages externos
+            if (sessionStore) {
+                try { sessionStore.removeItem(`jsform_${key}`); } catch (_) {}
+            }
+            if (localStore) {
+                try { localStore.removeItem(`jsform_${key}`); } catch (_) {}
+            }
         }
     }
 
     /**
      * Retrieves a value from the global state.
      * @param {string} key - The identifier to look up.
+     * @param {'session'|'local'|'memory'|null} [storageScope=null] - Ámbito forzoso. Si es null, mantiene comportamiento en cascada retrocompatible.
      * @returns {any} The stored data, or null if not found.
      */
-    static get(key) {
-        // 1. Check fast in-memory store
-        if (this._store[key] !== undefined) {
-            return this._store[key];
+    static get(key, storageScope = null) {
+        // 1. Ámbito estricto de memoria
+        if (storageScope === 'memory') {
+            return this._store[key] !== undefined ? this._store[key] : null;
         }
 
-        // 2. Fallback to storage (check session first, then local)
-        const savedData = sessionStorage.getItem(`jsform_${key}`) || localStorage.getItem(`jsform_${key}`);
-        
-        if (savedData) {
-            const parsedData = JSON.parse(savedData);
-            this._store[key] = parsedData; // Restore to memory for future fast access
-            return parsedData;
+        const sessionStore = this._getStorage('session');
+        const localStore = this._getStorage('local');
+
+        // 2. Consulta según ámbito solicitado
+        let savedData = null;
+        if (storageScope === 'session') {
+            if (sessionStore) {
+                try { savedData = sessionStore.getItem(`jsform_${key}`); } catch (_) {}
+            }
+        } else if (storageScope === 'local') {
+            if (localStore) {
+                try { savedData = localStore.getItem(`jsform_${key}`); } catch (_) {}
+            }
+        } else {
+            // Cascada por defecto (100% retrocompatible): primero memoria rápida
+            if (this._store[key] !== undefined) {
+                return this._store[key];
+            }
+            // Fallback: sessionStorage tiene precedencia estricta sobre localStorage
+            try {
+                savedData = sessionStore?.getItem(`jsform_${key}`) || localStore?.getItem(`jsform_${key}`);
+            } catch (_) {}
+        }
+
+        if (savedData !== null && savedData !== undefined) {
+            try {
+                const parsedData = JSON.parse(savedData);
+                this._store[key] = parsedData; // Restaurar a memoria para acceso rápido futuro
+                return parsedData;
+            } catch (_) {
+                // Tolerancia a strings planos legacy no serializados como JSON
+                this._store[key] = savedData;
+                return savedData;
+            }
         }
 
         return null;
+    }
+
+    /**
+     * Comprueba si una clave existe en el estado global o en el ámbito especificado.
+     * @param {string} key - El identificador a comprobar.
+     * @param {'session'|'local'|'memory'|null} [storageScope=null] - Ámbito a inspeccionar.
+     * @returns {boolean} True si la clave existe con un valor distinto de null/undefined.
+     */
+    static has(key, storageScope = null) {
+        return this.get(key, storageScope) !== null;
     }
 
     /**
@@ -73,20 +172,47 @@ export class State {
     }
 
     /**
-     * Clears specific key or all state (useful for Logout).
-     * @param {string} [key=null] - The specific key to remove. If null, clears everything.
+     * Clears specific key or all JSForm state (useful for Logout).
+     * Si no se especifica clave, limpia exclusivamente los datos con prefijo jsform_
+     * para no interferir con otras aplicaciones o librerías en el mismo dominio.
+     * @param {string|null} [key=null] - The specific key to remove. If null, clears all jsform data.
+     * @param {'session'|'local'|'memory'|null} [storageScope=null] - Ámbito específico a limpiar. Si es null, limpia en todos.
      */
-    static clear(key = null) {
+    static clear(key = null, storageScope = null) {
+        const sessionStore = this._getStorage('session');
+        const localStore = this._getStorage('local');
+
         if (key) {
-            delete this._store[key];
-            delete this._listeners[key];
-            sessionStorage.removeItem(`jsform_${key}`);
-            localStorage.removeItem(`jsform_${key}`);
+            if (!storageScope || storageScope === 'memory') {
+                delete this._store[key];
+                delete this._listeners[key];
+            }
+            if (!storageScope || storageScope === 'session') {
+                try { sessionStore?.removeItem(`jsform_${key}`); } catch (_) {}
+            }
+            if (!storageScope || storageScope === 'local') {
+                try { localStore?.removeItem(`jsform_${key}`); } catch (_) {}
+            }
         } else {
-            this._store = {};
-            this._listeners = {};
-            sessionStorage.clear();
-            localStorage.clear();
+            if (!storageScope || storageScope === 'memory') {
+                this._store = {};
+                this._listeners = {};
+            }
+            if (!storageScope || storageScope === 'session') {
+                this._clearPrefixedStorage(sessionStore);
+            }
+            if (!storageScope || storageScope === 'local') {
+                this._clearPrefixedStorage(localStore);
+            }
         }
+    }
+
+    /**
+     * Alias de clear(key, storageScope) para mayor claridad semántica.
+     * @param {string} key - Identificador de la clave a remover.
+     * @param {'session'|'local'|'memory'|null} [storageScope=null] - Ámbito específico.
+     */
+    static remove(key, storageScope = null) {
+        this.clear(key, storageScope);
     }
 }
