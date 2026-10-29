@@ -5,6 +5,18 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 
 ---
 
+## [1.3.14] - 2026-10-29
+
+### ⚡ Soporte Nativo para Captura de Eventos `blur` y `focus` en `compiler.js`
+* **Delegación de Eventos en Fase de Captura (`useCapture = true`):**
+  * Conforme a la especificación W3C DOM, los eventos `blur` y `focus` no se propagan en la fase de burbujeo (`bubbles: false`). En versiones anteriores, la delegación automática en `rootElement.addEventListener(eventType, ...)` no interceptaba estos eventos en campos hijos.
+  * Se actualizó la generación de código de `autoBindEvents()` tanto en la plantilla de directorios (`watcher.on('addDir')`) como en la compilación de vistas (`generateDesigner(htmlPath)`) para evaluar dinámicamente `const useCapture = (eventType === 'blur' || eventType === 'focus');` y pasarlo como 3er parámetro a `addEventListener`.
+* **Soporte Completo para Métodos Auto-vinculados por ID y Clase:**
+  * Métodos de controlador nombrados como `[id]_blur`, `[id]_focus`, `cls_[clase]_blur` y `cls_[clase]_focus` (ej. `txtEmail_blur`, `txtInput_focus`, `cls_custom_input_blur`) ahora se interceptan y enrutan de forma nativa sin requerir listeners manuales en `onReady`.
+  * Los eventos con burbujeo estándar (`click`, `change`, `input`, `keydown`, etc.) continúan ejecutándose en la fase de burbujeo habitual (`useCapture: false`).
+
+---
+
 ## [1.3.13] - 2026-10-26
 
 ### 📦 Desacoplamiento de Ámbitos y Protección Anti-Zombie en `JSForm.State.js`

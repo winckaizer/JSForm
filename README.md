@@ -40,6 +40,7 @@ export class LoginController extends LoginDesigner {
 *   **Auto-Binding de Eventos con Delegación**: Enlaza eventos del DOM a métodos del controlador por convención de nombres. Gracias a la delegación de eventos, funcionan siempre, incluso si los elementos se inyectan o reemplazan dinámicamente después.
     *   **Por ID:** `btnGuardar_click(e, el)` se enlaza a `<button id="btnGuardar">`.
     *   **Por Clase:** `cls_menu_item_click(e, el)` se enlaza a `<div class="menu-item">`, `.menu_item` o `.cls_menu_item`, enviando el elemento específico como segundo parámetro (incluso si se hace clic sobre elementos hijos como iconos o spans).
+    *   **Soporte para Eventos de Captura (`blur` / `focus`):** Conforme al estándar DOM W3C, los eventos `blur` y `focus` no burbujean (`bubbles: false`); el motor los delega automáticamente en fase de captura (`useCapture: true`), permitiendo definir métodos como `txtEmail_blur(e, el)` o `cls_input_focus(e, el)` con total transparencia.
     *   **Soporte para Herencia (POO):** Reconoce automáticamente métodos de eventos declarados en clases base (ej. `BaseCRUDController`), recorriendo la jerarquía completa de prototipos.
 *   **Selector Integrado (`this.query`)**: Selecciona múltiples elementos de forma nativa dentro de tu vista. Funciona como un `$('.clase')` de jQuery pero devuelve un `Array` puro de Vanilla JS, restringido al DOM de tu componente actual.
 *   **Componentes Reutilizables**: Incluye `MessageBox`, `DataGridView` (tabla de datos nativa con paginación local y remota) y un `HttpClient`.
