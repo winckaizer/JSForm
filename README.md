@@ -511,6 +511,47 @@ console.log(ruta.query);  // { mode: 'edit' }
 console.log(ruta.meta);   // { requiresAuth: true, ... }
 ```
 
+#### Lazy-Loading Desacoplado para Empaquetadores (`Application.setControllerLoader`)
+
+Permite registrar un cargador asíncrono para resolver controladores bajo demanda con imports estáticos (`forms.registry.js`). Esto garantiza compatibilidad nativa con Vite, Rollup y Webpack en producción, dividiendo la aplicación en chunks independientes sin requerir importaciones dinámicas basadas en template literals arbitrarios:
+
+```javascript
+// app/program.js
+import { Application } from '../core/JSForm.Core.js';
+
+// Catálogo de carga diferida (code-splitting / chunking):
+Application.setControllerLoader(async (viewName) => {
+    switch (viewName) {
+        case 'Facturacion':
+            return (await import('./forms/Facturacion/facturacion.controller.js')).FacturacionController;
+        case 'Tienda':
+            return (await import('./forms/Tienda/tienda.controller.js')).TiendaController;
+        default:
+            return null;
+    }
+});
+```
+
+#### Despliegue en Subdirectorios (`basePath`)
+
+Si tu aplicación no se encuentra alojada en la raíz del dominio (ej. `http://localhost/mi-sistema/front/` en Apache o Nginx), configura `router.basePath` en tu archivo `jsform.config.js`:
+
+```javascript
+// jsform.config.js
+export default {
+    router: {
+        defaultTarget: 'app-root',
+        basePath: '/mi-sistema/front' // Sin o con barra final, el framework lo normaliza automáticamente
+    }
+};
+```
+
+El framework antepone automáticamente el `basePath` normalizado al resolver:
+* Plantillas `.html` de vistas y layouts vía `fetch`.
+* Controladores dinámicos `.controller.js`.
+* Páginas de error personalizadas (`/assets/errors/[status].html`).
+* Entradas en la barra de direcciones mediante la History API (`pushState` y `replaceState`).
+
 ### JSForm.Logger (Seguridad OWASP Top 10)
 
 El módulo `JSForm.Logger` protege la aplicación contra fugas inadvertidas de datos sensibles en la consola de depuración del navegador (OWASP A02:2021 y A09:2021). Se inicializa automáticamente al ejecutar `Application.init()`.

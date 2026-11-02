@@ -5,6 +5,21 @@ El formato está basado en [Keep a Changelog](https://keepachangelog.com/es-ES/1
 
 ---
 
+## [1.3.15] - 2026-11-02
+
+### 🌐 Soporte para Subdirectorios Web (`basePath`) y Lazy-Loading Desacoplado (`setControllerLoader`) en `JSForm.Core.js`
+* **Cargador Desacoplado Asíncrono (`Application.setControllerLoader`):**
+  * Nueva API para registrar ganchos de carga asíncrona de controladores bajo demanda (`(viewName) => Promise<ControllerClass | Module | void>`).
+  * Desacopla la resolución de controladores de la importación dinámica por template literals en disco, permitiendo compatibilidad total con empaquetadores como Vite, Rollup o Webpack mediante catálogos estáticos (ej. `forms.registry.js`).
+  * Soporta retornos de clase directa, módulos ESM (`{ MiController }`, `{ default }`) o registro interno manual con `Application.register`.
+  * Integrado de forma homogénea en `Application.open()`, en la restauración de rutas de `Application.init()` (Hot Reload en desarrollo) y en la resolución de layouts maestros en `Application.run()`.
+* **Soporte de Despliegue en Subdirectorios Web (`AppConfig.router.basePath`):**
+  * Normalización automática de `basePath` eliminando barras finales redundantes (`/\/+$/`) para evitar rutas con doble barra (`//`).
+  * Anteposición dinámica de `basePath` en la carga de plantillas HTML (`_internalRun`), controladores dinámicos por convención (`open`, `init`), layouts maestros (`run`, `init`) y páginas de error personalizadas (`_showErrorPage`).
+  * Resuelve fallos HTTP 404 al alojar aplicaciones en subcarpetas de servidores web como Apache o Nginx (ej. `http://localhost/mi-sistema/front/`).
+
+---
+
 ## [1.3.14] - 2026-10-29
 
 ### ⚡ Soporte Nativo para Captura de Eventos `blur` y `focus` en `compiler.js`

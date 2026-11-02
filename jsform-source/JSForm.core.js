@@ -28,6 +28,9 @@ export class Application {
     // Referencia al ID del contenedor de la vista actual
     static _currentViewTargetId = null;
 
+    // CARGADOR DESACOPLADO DE CONTROLADORES (Lazy Loading / Bundlers)
+    static _controllerLoader = null;
+
     // NAVIGATION & ROUTE REGISTRY (Declarativo, Metadatos y Pipeline de Guards)
     static _routesList = [];
     static _routesMap = new Map();
@@ -387,6 +390,16 @@ export class Application {
     }
 
     /**
+     * Registra una función cargadora asíncrona de controladores (lazy-loading).
+     * Permite resolver controladores dinámicamente mediante imports estáticos desacoplados
+     * (ej. forms.registry.js) para compatibilidad total con empaquetadores (Vite, Rollup, Webpack).
+     * @param {Function} loaderFn - Función (viewName) => Promise<ControllerClass | Module | void>
+     */
+    static setControllerLoader(loaderFn) {
+        this._controllerLoader = loaderFn;
+    }
+
+    /**
      * Abre y navega a una vista por su nombre o path, ejecutando el pipeline de guards y resolviendo dinámicamente el controlador.
      * @param {string} viewOrPath - El nombre de la vista/formulario o path registrado (ej. 'Dashboard', '/facturacion').
      * @param {object} [parameters=null] - Parámetros opcionales a pasar al controlador.
@@ -435,16 +448,34 @@ export class Application {
             return null;
         }
 
-        const route = this._routes[to.form];
+        let route = this._routes[to.form];
+        if ((!route || !route.ControllerClass) && typeof this._controllerLoader === 'function') {
+            const loaded = await this._controllerLoader(to.form);
+            if (context.abortSignal.aborted) return null;
+            if (loaded) {
+                if (typeof loaded === 'function') {
+                    this.register(to.form, loaded);
+                } else if (typeof loaded === 'object') {
+                    const classNamePrefix = to.form.charAt(0).toUpperCase() + to.form.slice(1);
+                    const foundClass = loaded[`${classNamePrefix}Controller`] || loaded.default || Object.values(loaded).find(v => typeof v === 'function');
+                    if (foundClass) {
+                        this.register(to.form, foundClass);
+                    }
+                }
+            }
+            route = this._routes[to.form];
+        }
+
         if (route && route.ControllerClass) {
             return await this.run(to.form, route.ControllerClass, null, parameters, to, context);
         }
 
         // Resolución dinámica por convención: /app/forms/[View]/[View].controller.js
+        const base = (this.AppConfig.router?.basePath || '').replace(/\/+$/, '');
         const folderName = to.form;
         const fileName = to.form;
         const classNamePrefix = folderName.charAt(0).toUpperCase() + folderName.slice(1);
-        const modulePath = `/app/forms/${folderName}/${fileName}.controller.js`;
+        const modulePath = `${base}/app/forms/${folderName}/${fileName}.controller.js`;
 
         try {
             const module = await import(modulePath);
@@ -560,15 +591,32 @@ export class Application {
                     }
                 }
                 
+                const base = (this.AppConfig.router?.basePath || '').replace(/\/+$/, '');
                 const folderName = to.form;
                 const fileName = to.form;
                 const classNamePrefix = folderName.charAt(0).toUpperCase() + folderName.slice(1);
 
                 try {
-                    const modulePath = `/app/forms/${folderName}/${fileName}.controller.js`;
-                    const module = await import(modulePath);
-                    const className = `${classNamePrefix}Controller`;
-                    const DynamicController = module[className];
+                    let DynamicController = this._routes[to.form]?.ControllerClass;
+                    if (!DynamicController && typeof this._controllerLoader === 'function') {
+                        const loaded = await this._controllerLoader(to.form);
+                        if (loaded) {
+                            if (typeof loaded === 'function') {
+                                this.register(to.form, loaded);
+                            } else if (typeof loaded === 'object') {
+                                const found = loaded[`${classNamePrefix}Controller`] || loaded.default || Object.values(loaded).find(v => typeof v === 'function');
+                                if (found) this.register(to.form, found);
+                            }
+                        }
+                        DynamicController = this._routes[to.form]?.ControllerClass;
+                    }
+
+                    if (!DynamicController) {
+                        const modulePath = `${base}/app/forms/${folderName}/${fileName}.controller.js`;
+                        const module = await import(modulePath);
+                        const className = `${classNamePrefix}Controller`;
+                        DynamicController = module[className];
+                    }
 
                     if (DynamicController) {
                         let targetForChildView = targetId;
@@ -581,10 +629,26 @@ export class Application {
                             const layoutFolderName = layoutConfig.view;
                             const layoutFileName = layoutConfig.view;
                             const layoutClassNamePrefix = layoutFolderName.charAt(0).toUpperCase() + layoutFolderName.slice(1);
-                            const layoutPath = `/app/forms/${layoutFolderName}/${layoutFileName}.controller.js`;
-                            
-                            const layoutModule = await import(layoutPath);
-                            const LayoutController = layoutModule[`${layoutClassNamePrefix}Controller`];
+
+                            let LayoutController = this._routes[layoutConfig.view]?.ControllerClass;
+                            if (!LayoutController && typeof this._controllerLoader === 'function') {
+                                const loadedLayout = await this._controllerLoader(layoutConfig.view);
+                                if (loadedLayout) {
+                                    if (typeof loadedLayout === 'function') {
+                                        this.register(layoutConfig.view, loadedLayout);
+                                    } else if (typeof loadedLayout === 'object') {
+                                        const found = loadedLayout[`${layoutClassNamePrefix}Controller`] || loadedLayout.default || Object.values(loadedLayout).find(v => typeof v === 'function');
+                                        if (found) this.register(layoutConfig.view, found);
+                                    }
+                                }
+                                LayoutController = this._routes[layoutConfig.view]?.ControllerClass;
+                            }
+
+                            if (!LayoutController) {
+                                const layoutPath = `${base}/app/forms/${layoutFolderName}/${layoutFileName}.controller.js`;
+                                const layoutModule = await import(layoutPath);
+                                LayoutController = layoutModule[`${layoutClassNamePrefix}Controller`];
+                            }
 
                             if (LayoutController) {
                                 this._currentLayoutController = await this._internalRun(layoutConfig.view, LayoutController, null, null, false, true, null, context);
@@ -610,7 +674,7 @@ export class Application {
                         await this._showErrorPage(rootContainer, 510, null, {
                             view: to.form,
                             error: e,
-                            modulePath: `/app/forms/${folderName}/${fileName}.controller.js`
+                            modulePath: `${base}/app/forms/${folderName}/${fileName}.controller.js`
                         });
                     }
                     return null;
@@ -637,7 +701,6 @@ export class Application {
                 const folderName = layoutConfig.view;
                 const fileName = layoutConfig.view;
                 const classNamePrefix = folderName.charAt(0).toUpperCase() + folderName.slice(1);
-                const layoutPath = `/app/forms/${folderName}/${fileName}.controller.js`;
 
                 try {
                     // Limpiar layout anterior si existe
@@ -645,8 +708,26 @@ export class Application {
                         this._currentLayoutController.onDestroy();
                     }
 
-                    const module = await import(layoutPath);
-                    const LayoutClass = module[`${classNamePrefix}Controller`];
+                    let LayoutClass = this._routes[layoutConfig.view]?.ControllerClass;
+                    if (!LayoutClass && typeof this._controllerLoader === 'function') {
+                        const loaded = await this._controllerLoader(layoutConfig.view);
+                        if (loaded) {
+                            if (typeof loaded === 'function') {
+                                this.register(layoutConfig.view, loaded);
+                            } else if (typeof loaded === 'object') {
+                                const found = loaded[`${classNamePrefix}Controller`] || loaded.default || Object.values(loaded).find(v => typeof v === 'function');
+                                if (found) this.register(layoutConfig.view, found);
+                            }
+                        }
+                        LayoutClass = this._routes[layoutConfig.view]?.ControllerClass;
+                    }
+
+                    if (!LayoutClass) {
+                        const base = (this.AppConfig.router?.basePath || '').replace(/\/+$/, '');
+                        const layoutPath = `${base}/app/forms/${folderName}/${fileName}.controller.js`;
+                        const module = await import(layoutPath);
+                        LayoutClass = module[`${classNamePrefix}Controller`];
+                    }
                     
                     // Cargamos el Layout en el root (sin empujar al historial)
                     // isLayout = true para evitar que se confunda con la página actual
@@ -706,9 +787,10 @@ export class Application {
             rootContainer.innerHTML = "<div style='padding: 20px;'>Loading interface...</div>";
 
             // 2. Resolve view paths (assumes /app/forms/Folder/file.html structure)
+            const base = (this.AppConfig.router?.basePath || '').replace(/\/+$/, '');
             const folderName = viewName;
             const fileName = viewName;
-            const htmlPath = `/app/forms/${folderName}/${fileName}.html`;
+            const htmlPath = `${base}/app/forms/${folderName}/${fileName}.html`;
 
             // 3. Fetch and inject HTML markup
             const response = await fetch(htmlPath);
@@ -814,7 +896,8 @@ export class Application {
      * @private
      */
     static async _showErrorPage(container, status, originalResponse = null, errorDetails = null) {
-        const errorPagePath = `${this.AppConfig.router.basePath}/assets/errors/${status}.html`;
+        const base = (this.AppConfig.router?.basePath || '').replace(/\/+$/, '');
+        const errorPagePath = `${base}/assets/errors/${status}.html`;
         try {
             const errorResponse = await fetch(errorPagePath);
             if (errorResponse.ok) {
